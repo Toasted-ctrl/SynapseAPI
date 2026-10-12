@@ -5,12 +5,13 @@ from pydantic import ValidationError
 
 from database.agent import (
     AgentConfiguration,
+    AgentConfigurationLimited,
     AgentSettings,
     AgentTools,
     create_agent,
     delete_agent,
     get_agent,
-    list_agents,
+    list_agents_owned_by_user,
     update_agent,
 )
 from db_helpers import make_session, params, row
@@ -128,28 +129,32 @@ class TestGetAgent:
 
 
 @pytest.mark.asyncio
-class TestListAgents:
+class TestListAgentsOwnedByUser:
 
-    async def test_returns_all_agents(self):
-        a, b = uuid.uuid4(), uuid.uuid4()
-        settings = make_settings()
-        stored = settings.model_dump(mode="json")
-        session = make_session(scalars=[[
-            row(id=a, name="alpha", settings=stored),
-            row(id=b, name="beta", settings=stored)
-        ]])
+    async def test_returns_id_and_name_of_all_agents(self):
+        user_id, a, b = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+        session = make_session(execute=[[row(id=a, name="alpha"), row(id=b, name="beta")]])
 
-        result = await list_agents(session=session, user_id=uuid.uuid4())
+        result = await list_agents_owned_by_user(session=session, user_id=user_id)
 
         assert result == [
-            AgentConfiguration(id=a, name="alpha", settings=settings),
-            AgentConfiguration(id=b, name="beta", settings=settings)
+            AgentConfigurationLimited(id=a, name="alpha"),
+            AgentConfigurationLimited(id=b, name="beta")
         ]
+        assert params(session.execute.await_args) == [user_id]
+
+    async def test_selects_only_id_and_name(self):
+        session = make_session(execute=[[]])
+
+        await list_agents_owned_by_user(session=session, user_id=uuid.uuid4())
+
+        statement = session.execute.await_args.args[0]
+        assert [column.name for column in statement.selected_columns] == ["id", "name"]
 
     async def test_returns_empty_list_when_none(self):
-        session = make_session(scalars=[[]])
+        session = make_session(execute=[[]])
 
-        assert await list_agents(session=session, user_id=uuid.uuid4()) == []
+        assert await list_agents_owned_by_user(session=session, user_id=uuid.uuid4()) == []
 
 
 @pytest.mark.asyncio

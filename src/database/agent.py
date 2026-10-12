@@ -134,15 +134,30 @@ async def get_agent(
     return _to_configuration(agent)
 
 
-async def list_agents(session: AsyncSession, user_id: uuid.UUID) -> list[AgentConfiguration]:
-    """Returns all agent configurations owned by the user."""
-    agents = (await session.scalars(
-        select(AgentConfigT)
+@dataclass(frozen=True)
+class AgentConfigurationLimited:
+    id: uuid.UUID
+    name: str
+
+
+async def list_agents_owned_by_user(
+    session: AsyncSession,
+    user_id: uuid.UUID
+) -> list[AgentConfigurationLimited]:
+    """Returns all agents owned by the user (id and name)."""
+    agents = (await session.execute(
+        select(AgentConfigT.id, AgentConfigT.name)
         .where(AgentConfigT.owner_user_id == user_id)
         .order_by(AgentConfigT.name)
     )).all()
     log.debug(f"Found {len(agents)} agents for user '{user_id}'")
-    return [_to_configuration(agent) for agent in agents]
+    return [
+        AgentConfigurationLimited(
+            id=agent.id,
+            name=agent.name
+        )
+        for agent in agents
+    ]
 
 
 async def update_agent(
