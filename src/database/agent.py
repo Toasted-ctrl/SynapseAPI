@@ -1,10 +1,11 @@
 import uuid
 from typing import Any
 from dataclasses import dataclass
-from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.playground.v1_models import AgentConfigurationCreate, AgentConfigurationRead
 from core.logging import get_logger
 from database.mcps import get_mcp_by_id
 
@@ -14,60 +15,70 @@ from .schemas.agent_config import AgentConfigT
 log = get_logger()
 
 
+# AgentConfigurationCreate minus name is stored as JSON in AgentConfigT.settings, so:
+# New fields must have a default so rows stored before the field existed still validate.
+# Breaking changes (renames, removals, changed meaning) bump CURRENT_SETTINGS_VERSION
+# and get an upgrade step in _upgrade_settings.
+# Unknown keys are dropped (Pydantic's default), so removed fields don't break old rows.
 CURRENT_SETTINGS_VERSION = 1
 
-
-class AgentTools(BaseModel):
-    mcp_ids: list[uuid.UUID] = Field(default_factory=list)
+NAME_UNIQUE_CONSTRAINT = "uq_agent_configs_owner_name"
 
 
-class AgentSettings(BaseModel):
-    """Agent settings stored as JSON in AgentConfigT.settings.
-
-    New fields must have a default so rows stored before the field existed still validate.
-    Breaking changes (renames, removals, changed meaning) bump CURRENT_SETTINGS_VERSION
-    and get an upgrade step in _upgrade.
-    Unknown keys are dropped (Pydantic's default), so removed fields don't break old rows.
-    Provider-specific sampling parameters (top_p, top_k, ...) go in model_params.
-    """
-
-    version: int = CURRENT_SETTINGS_VERSION
-    system_prompt: str
-    provider_name: str
-    provider_model: str
-    model_params: dict[str, Any] = Field(default_factory=dict)
-    tools: AgentTools = Field(default_factory=AgentTools)
-
-    @model_validator(mode="before")
-    @classmethod
-    def _upgrade(cls, data):
-        if not isinstance(data, dict):
-            return data
-        version = data.get("version", 1)
-        if version > CURRENT_SETTINGS_VERSION:
-            raise ValueError(f"Unsupported agent settings version '{version}'")
-        return data
+class AgentNotFoundError(ValueError):
+    """The agent does not exist or is not owned by the user."""
 
 
-@dataclass(frozen=True)
-class AgentConfiguration:
-    id: uuid.UUID
-    name: str
-    settings: AgentSettings
+class AgentNameTakenError(ValueError):
+    """The user already has an agent with this name."""
 
 
-def _to_configuration(agent: AgentConfigT) -> AgentConfiguration:
-    return AgentConfiguration(
-        id=agent.id,
-        name=agent.name,
-        settings=AgentSettings.model_validate(agent.settings)
-    )
+class AgentReferenceError(ValueError):
+    """The configuration references a record (e.g. an MCP server) that does not exist."""
 
 
-async def _validate_references(session: AsyncSession, settings: AgentSettings) -> None:
-    """Raises ValueError if the settings reference records that do not exist."""
-    for mcp_id in settings.tools.mcp_ids:
-        await get_mcp_by_id(session=session, mcp_id=mcp_id)
+def _upgrade_settings(settings: dict[str, Any]) -> dict[str, Any]:
+    """Brings stored settings JSON up to CURRENT_SETTINGS_VERSION."""
+    version = settings.get("version", 1)
+    if version > CURRENT_SETTINGS_VERSION:
+        raise ValueError(f"Unsupported agent settings version '{version}'")
+    return settings
+
+
+def _to_settings(config: AgentConfigurationCreate) -> dict[str, Any]:
+    """Serialises a configuration to the JSON stored in AgentConfigT.settings."""
+    return {
+        "version": CURRENT_SETTINGS_VERSION,
+        **config.model_dump(mode="json", exclude={"name"})
+    }
+
+
+def _to_configuration(agent: AgentConfigT) -> AgentConfigurationRead:
+    return AgentConfigurationRead.model_validate({
+        **_upgrade_settings(agent.settings),
+        "id": agent.id,
+        "name": agent.name
+    })
+
+
+async def _validate_references(session: AsyncSession, config: AgentConfigurationCreate) -> None:
+    """Raises AgentReferenceError if the configuration references records that do not exist."""
+    for mcp_id in config.tools.mcp_ids:
+        try:
+            await get_mcp_by_id(session=session, mcp_id=mcp_id)
+        except ValueError as e:
+            raise AgentReferenceError(str(e)) from e
+
+
+async def _flush_or_name_taken(session: AsyncSession, name: str) -> None:
+    """Flushes, turning a unique name violation (e.g. from a concurrent request that
+    passed _ensure_name_available at the same time) into AgentNameTakenError."""
+    try:
+        await session.flush()
+    except IntegrityError as e:
+        if NAME_UNIQUE_CONSTRAINT in str(e.orig):
+            raise AgentNameTakenError(f"An agent named '{name}' already exists") from e
+        raise
 
 
 async def _get_agent_row(
@@ -84,7 +95,7 @@ async def _get_agent_row(
     )).scalar_one_or_none()
     if not agent:
         log.debug(f"Could not locate agent with id '{agent_id}' for user '{user_id}'")
-        raise ValueError(f"Could not locate agent with id '{agent_id}'")
+        raise AgentNotFoundError(f"Could not locate agent with id '{agent_id}'")
     return agent
 
 
@@ -101,34 +112,33 @@ async def _ensure_name_available(
         )
     )).scalar_one_or_none()
     if existing:
-        raise ValueError(f"An agent named '{name}' already exists")
+        raise AgentNameTakenError(f"An agent named '{name}' already exists")
 
 
-async def create_agent(
+async def create_agent_configuration(
     session: AsyncSession,
     user_id: uuid.UUID,
-    name: str,
-    settings: AgentSettings
-) -> AgentConfiguration:
+    config: AgentConfigurationCreate
+) -> AgentConfigurationRead:
     """Stores a new agent configuration for the user."""
-    await _ensure_name_available(session=session, user_id=user_id, name=name)
-    await _validate_references(session=session, settings=settings)
+    await _ensure_name_available(session=session, user_id=user_id, name=config.name)
+    await _validate_references(session=session, config=config)
     agent = AgentConfigT(
         owner_user_id=user_id,
-        name=name,
-        settings=settings.model_dump(mode="json")
+        name=config.name,
+        settings=_to_settings(config)
     )
     session.add(agent)
-    await session.flush()
+    await _flush_or_name_taken(session=session, name=config.name)
     log.debug(f"Created agent '{agent.id}' for user '{user_id}'")
     return _to_configuration(agent)
 
 
-async def get_agent(
+async def get_agent_configuration(
     session: AsyncSession,
     user_id: uuid.UUID,
     agent_id: uuid.UUID
-) -> AgentConfiguration:
+) -> AgentConfigurationRead:
     """Fetches an agent configuration owned by the user."""
     agent = await _get_agent_row(session=session, user_id=user_id, agent_id=agent_id)
     return _to_configuration(agent)
@@ -160,26 +170,25 @@ async def list_agents_owned_by_user(
     ]
 
 
-async def update_agent(
+async def update_agent_configuration(
     session: AsyncSession,
     user_id: uuid.UUID,
     agent_id: uuid.UUID,
-    settings: AgentSettings,
-    name: str | None = None
-) -> AgentConfiguration:
-    """Replaces an agent's settings, and optionally renames it."""
+    config: AgentConfigurationCreate
+) -> AgentConfigurationRead:
+    """Replaces an agent's configuration, including its name."""
     agent = await _get_agent_row(session=session, user_id=user_id, agent_id=agent_id)
-    if name is not None and name != agent.name:
-        await _ensure_name_available(session=session, user_id=user_id, name=name)
-        agent.name = name
-    await _validate_references(session=session, settings=settings)
-    agent.settings = settings.model_dump(mode="json")
-    await session.flush()
+    if config.name != agent.name:
+        await _ensure_name_available(session=session, user_id=user_id, name=config.name)
+        agent.name = config.name
+    await _validate_references(session=session, config=config)
+    agent.settings = _to_settings(config)
+    await _flush_or_name_taken(session=session, name=config.name)
     log.debug(f"Updated agent '{agent_id}' for user '{user_id}'")
     return _to_configuration(agent)
 
 
-async def delete_agent(
+async def delete_agent_configuration(
     session: AsyncSession,
     user_id: uuid.UUID,
     agent_id: uuid.UUID
