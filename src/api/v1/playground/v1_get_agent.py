@@ -19,12 +19,15 @@ router = APIRouter()
 @router.get(
     "/playground/agent",
     tags=["Playground"],
-    description="Creates and stores a new agent configuration.",
+    description="Returns an agent configuration.",
     response_model=AgentConfigurationRead,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Agent does not exist or is not owned by the user."}
+    }
 )
 async def get_agent(
-    agent_id: str,
+    agent_id: UUID,
     session: AsyncSession = Depends(get_db_session),
     user: VerifiedUser = Depends(depends_verify_user),
 ) -> AgentConfigurationRead:
@@ -32,7 +35,7 @@ async def get_agent(
         return await get_agent_configuration(
             session=session,
             user_id=user.id,
-            agent_id=UUID(agent_id)
+            agent_id=agent_id
         )
     except AgentNotFoundError as e:
         raise HTTPException(
@@ -43,5 +46,5 @@ async def get_agent(
         log.exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unexpected error occurred while creating the agent."
+            detail="Unexpected error occurred while retrieving the agent."
         )
