@@ -1,6 +1,6 @@
 [project]
 name = "ai-api"
-version = "0.5.13"
+version = "0.5.14"
 description = "AI API that functions as a general gateway for multiple providers (e.g., Ollama, Anthropic)."
 readme = "README.md"
 requires-python = ">=3.14"
