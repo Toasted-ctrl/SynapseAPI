@@ -20,6 +20,10 @@ class AgentModel(BaseModel):
 class AgentTools(BaseModel):
     """Tools the Agent is allowed to use."""
     mcp_ids: Annotated[list[UUID], Field(default_factory=list, description="List of MCP servers that Agent is allowed to use.")]
+    web_search: Annotated[bool, Field(description="Allows the Agent to search the web.")] = False
+    user_vs_files: Annotated[bool, Field(description="Allows the Agent to search the user's files.")] = False
+    user_vs_memories: Annotated[bool, Field(description="Allows the Agent to search the user's memories.")] = False
+    user_vs_skills: Annotated[bool, Field(description="Allows the Agent to discover the user's skills.")] = False
 
 
 class AgentConfigurationBase(BaseModel):

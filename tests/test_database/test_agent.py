@@ -166,6 +166,16 @@ class TestGetAgentConfiguration:
         assert result.model.parameters == AgentModelParameters()
         assert result.tools.mcp_ids == []
 
+    async def test_tool_flags_missing_from_stored_tools_default_to_false(self):
+        mcp_id = uuid.uuid4()
+        settings = {"model": {"provider": "p", "name": "m"}, "tools": {"mcp_ids": [str(mcp_id)]}}
+        session = make_session(execute=[row(id=uuid.uuid4(), name="helper", settings=settings)])
+
+        result = await get_agent_configuration(session=session, user_id=uuid.uuid4(), agent_id=uuid.uuid4())
+
+        assert result.tools == AgentTools(mcp_ids=[mcp_id])
+        assert not result.tools.web_search
+
     async def test_unknown_fields_are_ignored(self):
         settings = {**stored_settings(make_config()), "removed_field": 1}
         session = make_session(execute=[row(id=uuid.uuid4(), name="helper", settings=settings)])

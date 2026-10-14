@@ -1,5 +1,6 @@
 import json
 import uuid
+from dataclasses import dataclass
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import StreamingResponse
 from httpx import ConnectTimeout, ConnectError
@@ -7,19 +8,19 @@ from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.playground.v1_models import AgentModel, AgentTools
 from auth.dep_verify_user import depends_verify_user, VerifiedUser
 from core.config import config
 from core.logging import get_logger
 from core.model_types import model_config
+from database.agent import AgentNotFoundError, get_agent_configuration
 from database.message_threads import verify_or_get_thread_id
 from database.providers import UserProviderRegistry, get_all_provider_configurations, ProviderConfiguration
 from database.session import get_db_session
-from iom.agent import PayloadAgent, ResponseAgentRun
-from tools.mcp_tools import get_mcp_tools
-from tools.search_vs import get_vs_search_tool
-from tools.web_search import get_web_search_tool
 from providers.agent import build_agent_model, stream_agent, run_agent
 from tools.get_tools import get_agent_tools
+
+from .v1_models import ConversationCreate, ConversationRead
 
 
 router = APIRouter()
@@ -39,29 +40,66 @@ def _serialize_event(event):
     return event
 
 
+@dataclass(frozen=True)
+class _ConversationSettings:
+    model: AgentModel
+    system_prompt: str | None
+    tools: AgentTools
+
+
+async def _resolve_settings(
+    payload: ConversationCreate,
+    session: AsyncSession,
+    user_id: uuid.UUID
+) -> _ConversationSettings:
+    """Returns the stored Agent's settings if agent_id is given, otherwise the inline ones.
+    Only stored Agents have a system prompt."""
+    if payload.agent_id:
+        try:
+            agent = await get_agent_configuration(
+                session=session,
+                user_id=user_id,
+                agent_id=payload.agent_id
+            )
+        except AgentNotFoundError as e:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=str(e)
+            )
+        return _ConversationSettings(
+            model=agent.model,
+            system_prompt=agent.system_prompt,
+            tools=agent.tools
+        )
+    return _ConversationSettings(
+        model=payload.model,
+        system_prompt=None,
+        tools=payload.tools or AgentTools()
+    )
+
+
 @router.post(
-    "/agent",
-    tags=["Agent Invocation"],
-    response_model=ResponseAgentRun,
+    "/conversation",
+    tags=["Conversation"],
+    response_model=ConversationRead,
     description=(
         "Invokes a non-streaming response from an agent (by agent_id), or a "
         "response from a model if an agent_id is not provided."
     )
 )
-async def agent_response(
-    payload: PayloadAgent,
+async def conversation(
+    payload: ConversationCreate,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ResponseAgentRun:
+) -> ConversationRead:
     try:
-        # TODO: Implement custom agent calling by utilizing agent_id.
-        if payload.agent_id:
-            raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                detail="Calling agents by agent_id is not implemented yet"
-            )
-        
-        if payload.provider_settings.model not in await model_config.chat_completion_models():
+        settings: _ConversationSettings = await _resolve_settings(
+            payload=payload,
+            session=session,
+            user_id=user.id
+        )
+
+        if settings.model.name not in await model_config.chat_completion_models():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Model not supported by Provider"
@@ -72,13 +110,13 @@ async def agent_response(
             user_id=user.id
         )
 
-        if payload.provider_settings.name in pr.not_configured:
+        if settings.model.provider in pr.not_configured:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Provider {payload.provider_settings.name} not configured"
+                detail=f"Provider {settings.model.provider} not configured"
             )
 
-        prov: ProviderConfiguration = pr.__getattr__(payload.provider_settings.name)
+        prov: ProviderConfiguration = getattr(pr, settings.model.provider)
 
         thread_id: uuid.UUID = await verify_or_get_thread_id(
             session=session,
@@ -87,12 +125,12 @@ async def agent_response(
         )
 
         tools = await get_agent_tools(
-            mcp_ids=payload.tools.mcp_tools,
+            mcp_ids=settings.tools.mcp_ids,
             session=session,
-            web_search=payload.tools.web_search,
-            user_vs_files=payload.tools.user_vs_files,
-            user_vs_memories=payload.tools.user_vs_memories,
-            user_vs_skills=payload.tools.user_vs_skills,
+            web_search=settings.tools.web_search,
+            user_vs_files=settings.tools.user_vs_files,
+            user_vs_memories=settings.tools.user_vs_memories,
+            user_vs_skills=settings.tools.user_vs_skills,
             user_id=user.id,
             pr=pr
         )
@@ -102,14 +140,14 @@ async def agent_response(
         ) as checkpointer:
             agent = build_agent_model(
                 langchain_con=prov.langchain_con,
-                model=payload.provider_settings.model,
+                model=settings.model.name,
                 base_url=prov.base_url,
-                temperature=payload.parameters.temperature,
-                top_k=payload.parameters.top_k,
-                top_p=payload.parameters.top_p,
+                temperature=settings.model.parameters.temperature,
+                top_k=settings.model.parameters.top_k,
+                top_p=settings.model.parameters.top_p,
                 encrypted_api_key=prov.encrypted_api_key,
                 tools=tools,
-                system_prompt=None,
+                system_prompt=settings.system_prompt,
                 checkpointer=checkpointer,
             )
 
@@ -134,28 +172,27 @@ async def agent_response(
 
 
 @router.post(
-    "/agent/stream",
-    tags=["Agent Invocation"],
+    "/conversation/stream",
+    tags=["Conversation"],
     response_class=StreamingResponse,
     description=(
         "Invokes a streaming response from an agent (by agent_id), or a "
         "streaming response from a model if an agent_id is not provided."
     )
 )
-async def agent_response_stream(
-    payload: PayloadAgent,
+async def conversation_stream(
+    payload: ConversationCreate,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
 ) -> StreamingResponse:
     try:
-        # TODO: Implement custom agent calling by utilizing agent_id.
-        if payload.agent_id:
-            raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                detail="Calling agents by agent_id is not implemented yet"
-            )
+        settings: _ConversationSettings = await _resolve_settings(
+            payload=payload,
+            session=session,
+            user_id=user.id
+        )
 
-        if payload.provider_settings.model not in await model_config.chat_completion_models():
+        if settings.model.name not in await model_config.chat_completion_models():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Model not supported by Provider"
@@ -166,13 +203,13 @@ async def agent_response_stream(
             user_id=user.id
             )
         
-        if payload.provider_settings.name in pr.not_configured:
+        if settings.model.provider in pr.not_configured:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Provider {payload.provider_settings.name} not configured"
+                detail=f"Provider {settings.model.provider} not configured"
             )
         
-        prov: ProviderConfiguration = pr.__getattr__(payload.provider_settings.name)
+        prov: ProviderConfiguration = getattr(pr, settings.model.provider)
 
         thread_id: uuid.UUID = await verify_or_get_thread_id(
             session=session,
@@ -181,12 +218,12 @@ async def agent_response_stream(
         )
 
         tools = await get_agent_tools(
-            mcp_ids=payload.tools.mcp_tools,
+            mcp_ids=settings.tools.mcp_ids,
             session=session,
-            web_search=payload.tools.web_search,
-            user_vs_files=payload.tools.user_vs_files,
-            user_vs_memories=payload.tools.user_vs_memories,
-            user_vs_skills=payload.tools.user_vs_skills,
+            web_search=settings.tools.web_search,
+            user_vs_files=settings.tools.user_vs_files,
+            user_vs_memories=settings.tools.user_vs_memories,
+            user_vs_skills=settings.tools.user_vs_skills,
             user_id=user.id,
             pr=pr
         )
@@ -198,14 +235,14 @@ async def agent_response_stream(
                 
                 agent = build_agent_model(
                     langchain_con=prov.langchain_con,
-                    model=payload.provider_settings.model,
+                    model=settings.model.name,
                     base_url=prov.base_url,
-                    temperature=payload.parameters.temperature,
-                    top_k=payload.parameters.top_k,
-                    top_p=payload.parameters.top_p,
+                    temperature=settings.model.parameters.temperature,
+                    top_k=settings.model.parameters.top_k,
+                    top_p=settings.model.parameters.top_p,
                     encrypted_api_key=prov.encrypted_api_key,
                     tools=tools,
-                    system_prompt=None,
+                    system_prompt=settings.system_prompt,
                     checkpointer=checkpointer,
                 )
 
