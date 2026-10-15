@@ -3,7 +3,7 @@
 > [!NOTE]
 > This document was last reviewed on 2026-08-23.
 
-This guide covers setting up, building, and deploying the Artificial Intelligence API (AIA).
+This guide covers setting up, building, and deploying SynapseAPI.
 
 The project supports two ways of running the application:
 
@@ -34,8 +34,8 @@ PostgreSQL and Redis must be available to the application. They may be hosted in
 
 ## 2. Clone the Repository
 ```bash
-git clone https://github.com/Toasted-ctrl/ai_api.git
-cd ai_api
+git clone https://github.com/Toasted-ctrl/SynapseAPI.git
+cd SynapseAPI
 ```
 ## 3. Initialize the Database
 The project includes an initialization script for creating the required database tables and optionally creating preconfigured clients, providers, vector stores and vector store collections.

@@ -24,7 +24,7 @@ class Config(BaseSettings):
         "_SKIP_GOOGLE_ENV_VARS",
     }
 
-    APP_NAME: str = "AIA: Artificial Intelligence API"
+    APP_NAME: str = "SynapseAPI"
     APP_MAINTAINER: str = "Toasted-ctrl"
     APP_VERSION: str = ""
 
