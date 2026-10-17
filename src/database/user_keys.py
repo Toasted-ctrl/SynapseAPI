@@ -121,3 +121,29 @@ async def get_or_store_key(
         provider_id=new_key.provider_id,
         expiration_date=new_key.expiration_date
     )
+
+
+class KeyNotFoundError(Exception):
+    """Exception Class for if a User's key isn't found."""
+    pass
+
+
+async def delete_user_key_by_key_id(
+    session: AsyncSession,
+    key_id: uuid.UUID,
+    user_id: uuid.UUID
+) -> None:
+    """Deletes a User's provider API key."""
+    existing = (await session.execute(
+        select(UserKeysT)
+        .where(
+            UserKeysT.id == key_id,
+            UserKeysT.user_id == user_id
+        )
+    )).scalar_one_or_none()
+    if not existing:
+        log.debug(f"Could not locate API key with id '{key_id}' for User '{user_id}'.")
+        raise KeyNotFoundError(f"Could not locate API key with id '{key_id}'")
+    await session.delete(existing)
+    await session.flush()
+    return None

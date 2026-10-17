@@ -4,7 +4,13 @@ from datetime import datetime, timedelta
 import pytest
 
 from database.schemas.user_keys import UserKeysT
-from database.user_keys import ProviderAPIKey, get_or_store_key, get_user_active_keys
+from database.user_keys import (
+    KeyNotFoundError,
+    ProviderAPIKey,
+    delete_user_key_by_key_id,
+    get_or_store_key,
+    get_user_active_keys
+)
 from db_helpers import make_session, params, row
 
 
@@ -112,3 +118,36 @@ class TestGetOrStoreKey:
             await get_or_store_key(session=session, api_key="sk-abc", user_id=uuid.uuid4(), provider_id=provider_id)
 
         session.add.assert_not_called()
+
+
+class TestDeleteUserKeyByKeyId:
+
+    async def test_deletes_existing_key(self):
+        user_id = uuid.uuid4()
+        existing = _key_row(user_id, uuid.uuid4())
+        session = make_session(execute=[existing])
+
+        result = await delete_user_key_by_key_id(session=session, key_id=existing.id, user_id=user_id)
+
+        assert result is None
+        session.delete.assert_awaited_once_with(existing)
+        session.flush.assert_awaited_once()
+
+    async def test_filters_on_key_and_user(self):
+        user_id = uuid.uuid4()
+        existing = _key_row(user_id, uuid.uuid4())
+        session = make_session(execute=[existing])
+
+        await delete_user_key_by_key_id(session=session, key_id=existing.id, user_id=user_id)
+
+        assert params(session.execute.await_args) == [existing.id, user_id]
+
+    async def test_raises_when_key_not_found(self):
+        key_id = uuid.uuid4()
+        session = make_session(execute=[None])
+
+        with pytest.raises(KeyNotFoundError, match=str(key_id)):
+            await delete_user_key_by_key_id(session=session, key_id=key_id, user_id=uuid.uuid4())
+
+        session.delete.assert_not_called()
+        session.flush.assert_not_called()
