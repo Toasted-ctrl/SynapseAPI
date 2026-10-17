@@ -45,9 +45,10 @@ def _config(name, internal=False, api_key_configured=False):
     )
 
 
-def _key(provider_id, api_key="enc:sk"):
+def _key(provider_id, api_key="enc:sk", api_key_id=None):
     return ProviderAPIKey(
         user_id=uuid.uuid4(),
+        api_key_id=api_key_id or uuid.uuid4(),
         api_key=api_key,
         api_key_short="sk-1234567",
         provider_id=provider_id,
@@ -159,7 +160,8 @@ class TestGetAllProviderConfigurations:
         openai = _provider_row("OpenAI", internal=False)
         anthropic = _provider_row("Anthropic", internal=False)
         session = make_session(execute=[[ollama, openai, anthropic]])
-        keys = AsyncMock(return_value=[_key(openai.id, api_key="enc:sk-openai")])
+        openai_key_id = uuid.uuid4()
+        keys = AsyncMock(return_value=[_key(openai.id, api_key="enc:sk-openai", api_key_id=openai_key_id)])
         monkeypatch.setattr("database.providers.get_user_active_keys", keys)
 
         reg = await get_all_provider_configurations(session=session, user_id=user_id)
@@ -168,8 +170,10 @@ class TestGetAllProviderConfigurations:
         assert reg.names == ["Ollama", "OpenAI", "Anthropic"]
         assert reg.OpenAI.encrypted_api_key == "enc:sk-openai"
         assert reg.OpenAI.api_key_configured is True
+        assert reg.OpenAI.api_key_id == openai_key_id
         assert reg.Anthropic.api_key_configured is False
         assert reg.Anthropic.encrypted_api_key is None
+        assert reg.Anthropic.api_key_id is None
         assert reg.Ollama.requires_api_key is False
         assert reg.not_configured == ["Anthropic"]
 

@@ -1,15 +1,15 @@
-import uuid
 from datetime import datetime
 from pydantic import BaseModel
+from uuid import UUID
 
 
-class PayloadUserKeys(BaseModel):
+class UserKeyCreate(BaseModel):
     provider: str
     api_key: str
 
 
-class ResponseUserKey(BaseModel):
-    user_id: uuid.UUID
+class UserKeyRead(BaseModel):
+    user_id: UUID
     provider: str
     api_key_short: str
     expires: datetime

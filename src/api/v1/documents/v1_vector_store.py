@@ -8,10 +8,11 @@ from database.documents_users import store_user_document
 from database.providers import get_all_provider_configurations, ProviderConfiguration, UserProviderRegistry
 from database.session import get_db_session
 from database.vector_store import get_vector_store_settings, VectorStoreConfig
-from iom.vector_store import PayloadSaveDocuments, ResponseSavedDocuments, PayloadSearchDocuments
 from vs.get_vs import get_vector_store
 from vs.save_docs import save_docs
 from vs.search import search_docs_similarity
+
+from .models import VectorStoreDocumentsCreate, VectorStoreDocumentsRead, VectorStoreSearchCreate
 
 
 router = APIRouter()
@@ -27,14 +28,14 @@ log = get_logger()
     path="/vector_store/add",
     tags=tags,
     description="Store (a) document(s) in the specified Vector Store based on scope.",
-    response_model=ResponseSavedDocuments
+    response_model=VectorStoreDocumentsRead
 )
 async def store_semantic_document(
-    payload: PayloadSaveDocuments,
+    payload: VectorStoreDocumentsCreate,
     scope: str,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session),
-) -> ResponseSavedDocuments:
+) -> VectorStoreDocumentsRead:
 
     if not scope in ["user_vs_files", "user_vs_memories"]:
         raise HTTPException(
@@ -103,7 +104,7 @@ async def store_semantic_document(
         required_metadata=vscf.required_filters
     )
 
-    return ResponseSavedDocuments(
+    return VectorStoreDocumentsRead(
         added_documents=[did for did in doc_ids]
     )
 
@@ -115,7 +116,7 @@ async def store_semantic_document(
 )
 async def search_document(
     scope: str,
-    payload: PayloadSearchDocuments,
+    payload: VectorStoreSearchCreate,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session),
 ):

@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from api.v1.playground.v1_models import (
+from api.v1.playground.models import (
     AgentConfigurationCreate,
     AgentConfigurationRead,
     AgentModelParameters,

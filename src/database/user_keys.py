@@ -1,8 +1,8 @@
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 
 from core.logging import get_logger
 from database.schemas.providers import ProvidersT
@@ -15,6 +15,7 @@ log = get_logger()
 @dataclass(frozen=True)
 class ProviderAPIKey:
     user_id: uuid.UUID
+    api_key_id: uuid.UUID
     api_key: str
     api_key_short: str
     provider_id: uuid.UUID
@@ -47,6 +48,7 @@ async def get_user_active_keys(
         ProviderAPIKey(
             user_id=k.user_id,
             provider_id=k.provider_id,
+            api_key_id=k.id,
             api_key=k.encrypted_api_key,
             api_key_short=k.api_key_short,
             expiration_date=k.expiration_date
@@ -82,6 +84,7 @@ async def get_or_store_key(
         log.info(f"Key with Provider '{existing.provider_id}' already exists for User '{existing.user_id}', returning existing key...")
         return ProviderAPIKey(
             user_id=existing.user_id,
+            api_key_id=existing.id,
             api_key=decrypt(existing.encrypted_api_key),
             api_key_short=existing.api_key_short,
             provider_id=existing.provider_id,
@@ -112,6 +115,7 @@ async def get_or_store_key(
 
     return ProviderAPIKey(
         user_id=new_key.user_id,
+        api_key_id=new_key.id,
         api_key=decrypt(new_key.encrypted_api_key),
         api_key_short=new_key.api_key_short,
         provider_id=new_key.provider_id,

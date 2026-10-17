@@ -6,8 +6,9 @@ from core.config import config
 from core.logging import get_logger
 from database.providers import get_all_provider_configurations, ProviderConfiguration
 from database.session import get_db_session
-from iom.vector_embedding import PayloadSingleVectorEmbedding, ResponseSingleVectorEmbedding
 from providers.vector_embedding import get_embedding
+
+from .models import VectorEmbeddingCreate, VectorEmbeddingRead
 
 
 router = APIRouter()
@@ -25,13 +26,13 @@ log = get_logger()
     description=(
         "Returns a vector embedding of the query for the indicated Provider and model."
     ),
-    response_model=ResponseSingleVectorEmbedding
+    response_model=VectorEmbeddingRead
 )
 async def post_test_vector_embedding(
-    payload: PayloadSingleVectorEmbedding,
+    payload: VectorEmbeddingCreate,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ResponseSingleVectorEmbedding:
+) -> VectorEmbeddingRead:
 
     try:
 
@@ -63,7 +64,7 @@ async def post_test_vector_embedding(
             encrypted_api_key=prov.encrypted_api_key
         )
 
-        return ResponseSingleVectorEmbedding(
+        return VectorEmbeddingRead(
             prompt=payload.prompt,
             provider=payload.provider,
             model=payload.model,

@@ -13,6 +13,7 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("fake_crypto")]
 
 def _key_row(user_id, provider_id, api_key="sk-1234567890abc"):
     return row(
+        id=uuid.uuid4(),
         user_id=user_id,
         provider_id=provider_id,
         encrypted_api_key=f"enc:{api_key}",
@@ -34,6 +35,7 @@ class TestGetUserActiveKeys:
             ProviderAPIKey(
                 user_id=r.user_id,
                 provider_id=r.provider_id,
+                api_key_id=r.id,
                 api_key=r.encrypted_api_key,
                 api_key_short=r.api_key_short,
                 expiration_date=r.expiration_date
@@ -67,6 +69,7 @@ class TestGetOrStoreKey:
         result = await get_or_store_key(session=session, api_key="sk-new", user_id=user_id, provider_id=provider_id)
 
         assert result.api_key == "sk-existing-key"
+        assert result.api_key_id == existing.id
         assert result.provider_id == provider_id
         session.add.assert_not_called()
 

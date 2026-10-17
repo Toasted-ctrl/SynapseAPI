@@ -8,8 +8,9 @@ from core.cache import cache_key_builder
 from core.logging import get_logger
 from database.model_sampling import get_model_sampling_settings, ModelSampling
 from database.session import get_db_session
-from iom.models import ResponseProviderModels, ResponseModelSampling
 from providers.models import get_all_models
+
+from .models import ProviderModelsRead, ModelSamplingRead
 
 
 log = get_logger()
@@ -21,7 +22,7 @@ router = APIRouter()
 @router.get(
     "/providers/models",
     tags=["Providers"],
-    response_model=ResponseProviderModels,
+    response_model=ProviderModelsRead,
     description="Returns a list of available models, divided by Provider and model expertise."
 )
 @cache(expire=1800, key_builder=cache_key_builder)
@@ -30,7 +31,7 @@ async def get_models(
     response: Response,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ResponseProviderModels:
+) -> ProviderModelsRead:
     pm = await get_all_models(
         session=session,
         user_id=user.id
@@ -40,7 +41,7 @@ async def get_models(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="No models available"
         )
-    return ResponseProviderModels(
+    return ProviderModelsRead(
         providers=pm
     )
 
@@ -49,7 +50,7 @@ async def get_models(
     "/providers/models/sampling",
     tags=["Providers"],
     description="Returns a dictionary of support model sampling settings.",
-    response_model=ResponseModelSampling
+    response_model=ModelSamplingRead
 )
 @cache(expire=1800, key_builder=cache_key_builder)
 async def get_model_sampling(
@@ -58,13 +59,13 @@ async def get_model_sampling(
     provider_name: str,
     model_name: str,
     session: AsyncSession = Depends(get_db_session)
-) -> ResponseModelSampling:
+) -> ModelSamplingRead:
     sampling: ModelSampling = await get_model_sampling_settings(
         session=session,
         provider_name=provider_name,
         model_name=model_name
     )
-    return ResponseModelSampling(
+    return ModelSamplingRead(
         provider=provider_name,
         model=model_name,
         sampling=asdict(sampling)

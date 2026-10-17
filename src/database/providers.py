@@ -35,6 +35,7 @@ class ProviderConfiguration:
     requires_api_key: bool = True
     encrypted_api_key: str | None = None
     api_key_short: str | None = None
+    api_key_id: uuid.UUID | None = None
 
 
 class UserProviderRegistry:
@@ -175,11 +176,9 @@ async def get_all_provider_configurations(
     session: AsyncSession,
     user_id: uuid.UUID
 ) -> UserProviderRegistry:
-
     """Fetches and returns a UserProviderRegistry object for a specified User.
     The registry will include for every Provider the API Key (encrypted) if available, as well as
     whether the Provider is internal or external, what connection it should use, etc."""
-
     providers = (await session.execute(
         select(
             ProvidersT.id,
@@ -189,12 +188,10 @@ async def get_all_provider_configurations(
             ProvidersT.internal
         )
     )).all()
-
     keys = await get_user_active_keys(
         session=session,
         user_id=user_id
     )
-
     conf = [
         ProviderConfiguration(
             id=p.id,
@@ -204,12 +201,12 @@ async def get_all_provider_configurations(
             encrypted_api_key=next((k.api_key for k in keys if k.provider_id == p.id), None),
             api_key_short=next((k.api_key_short for k in keys if k.provider_id == p.id), None),
             api_key_configured=not p.internal and any(k.provider_id == p.id for k in keys),
+            api_key_id=next((k.api_key_id for k in keys if k.provider_id == p.id), None),
             requires_api_key=not p.internal,
             internal=p.internal
         )
         for p in providers
     ]
-
     return UserProviderRegistry(
         providers=conf
     )

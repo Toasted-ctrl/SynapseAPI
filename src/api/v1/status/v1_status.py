@@ -1,14 +1,15 @@
 from fastapi import APIRouter
 
-from iom.status import ResponseStatus
+from .models import StatusRead
+
 
 router = APIRouter()
-tags = ["Status"]
+
 
 @router.get(
     "/status",
-    tags=tags,
-    response_model=ResponseStatus
+    tags=["Status"],
+    response_model=StatusRead
 )
 def get_status():
     return {

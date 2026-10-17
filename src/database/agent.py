@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.playground.v1_models import AgentConfigurationCreate, AgentConfigurationRead
+from api.v1.playground.models import AgentConfigurationCreate, AgentConfigurationRead
 from core.logging import get_logger
 from database.mcps import get_mcp_by_id
 

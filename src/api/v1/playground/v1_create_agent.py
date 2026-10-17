@@ -6,7 +6,7 @@ from core.logging import get_logger
 from database.agent import AgentNameTakenError, AgentReferenceError, create_agent_configuration
 from database.session import get_db_session
 
-from .v1_models import AgentConfigurationCreate, AgentConfigurationRead
+from .models import AgentConfigurationCreate, AgentConfigurationRead
 
 
 log = get_logger()

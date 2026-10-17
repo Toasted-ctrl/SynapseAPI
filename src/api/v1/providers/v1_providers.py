@@ -6,7 +6,8 @@ from auth.dep_verify_user import depends_verify_user, VerifiedUser
 from core.cache import cache_key_builder
 from database.providers import get_all_provider_configurations
 from database.session import get_db_session
-from iom.providers import ProvidersResponse
+
+from .models import ProviderRead, ProvidersRead
 
 
 router = APIRouter()
@@ -14,7 +15,7 @@ router = APIRouter()
 
 @router.get(
     "/providers/configuration",
-    response_model=ProvidersResponse,
+    response_model=ProvidersRead,
     description=(
         "Returns a list of Providers that are available through the API. "
         "Provides an indication of whether a User-provided Provider API key is required, "
@@ -26,13 +27,11 @@ router = APIRouter()
 async def get_all_providers(
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ProvidersResponse:
-
+) -> ProvidersRead:
     p_reg = await get_all_provider_configurations(
         session=session,
         user_id=user.id
     )
-
-    return {
-        "providers": [p for p in p_reg]
-    }
+    return ProvidersRead(
+        providers=[ProviderRead.model_validate(p) for p in p_reg]
+    )

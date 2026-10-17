@@ -5,7 +5,8 @@ from auth.dep_verify_user import depends_verify_user, VerifiedUser
 from database.person import PersonDetails, get_person_by_person_id
 from database.session import get_db_session
 from database.user import get_user_by_user_id, UserDetails
-from iom.authenticated_user import ResponseAuthenticatedUser
+
+from .models import AuthenticatedUserRead
 
 
 router = APIRouter()
@@ -14,13 +15,13 @@ router = APIRouter()
 @router.get(
     "/auth/me",
     tags=["Auth"],
-    response_model=ResponseAuthenticatedUser,
+    response_model=AuthenticatedUserRead,
     description=f"Returns the user_id, first name, last name and email address of the authenticated User."
 )
 async def auth_me(
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ResponseAuthenticatedUser:
+) -> AuthenticatedUserRead:
     
     u: UserDetails = await get_user_by_user_id(
         session=session,
@@ -42,7 +43,7 @@ async def auth_me(
             detail="Person not found"
         )
     
-    return ResponseAuthenticatedUser(
+    return AuthenticatedUserRead(
         user_id=u.user_id,
         first_name=p.first_name,
         last_name=p.last_name,

@@ -7,7 +7,8 @@ from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.logging import get_logger
 from database.session import get_db_session
 from database.user_skills import post_user_skill, get_user_skill_by_skill_id, SkillDescription, update_user_skill_by_skill_id
-from iom.skills import PayloadCreateSkill, ResponseCreateSkill, ResponseGetSkill, ResponsePatchSkill, PayloadPatchSkill
+
+from .models import SkillCreate, SkillCreateRead, SkillRead, SkillUpdate
 
 
 router = APIRouter()
@@ -23,14 +24,14 @@ log = get_logger()
     path="/skill",
     tags=tags,
     description="Create a skill with the provided content and store it in the Vector Store.",
-    response_model=ResponseCreateSkill
+    response_model=SkillCreateRead
 )
 async def create_skill(
     scope: str,
-    payload: PayloadCreateSkill,
+    payload: SkillCreate,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ResponseCreateSkill:
+) -> SkillCreateRead:
     """Create a new user skill.
     
     This endpoint creates a user skill record in the database and stores the skill description
@@ -53,7 +54,7 @@ async def create_skill(
             parameters_schema=payload.parameters_schema
         )
         
-        return ResponseCreateSkill(
+        return SkillCreateRead(
             skill_id=skill_id,
             name=payload.name,
             message=f"Skill '{payload.name}' created successfully"
@@ -77,14 +78,14 @@ async def create_skill(
     "/skill",
     tags=tags,
     description="Retrieves a skill's name, description, instructions and parameter schema.",
-    response_model=ResponseGetSkill
+    response_model=SkillRead
 )
 async def get_skill(
     skill_id: str,
     scope: str,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ResponseGetSkill:
+) -> SkillRead:
     try:
         if scope == "user_vs_skills":
             skill: SkillDescription = await get_user_skill_by_skill_id(
@@ -97,7 +98,7 @@ async def get_skill(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Unsupported scope: '{scope}'"
             )
-        return ResponseGetSkill(
+        return SkillRead(
             **asdict(skill)
         )
     except ValueError as e:
@@ -114,14 +115,14 @@ async def get_skill(
         "Updated a skill its instructions. For complete updates to the skill, including its description, "
         "remove the current skill and add a new one."
     ),
-    response_model=ResponsePatchSkill
+    response_model=SkillRead
 )
 async def patch_skill(
     scope: str,
-    payload: PayloadPatchSkill,
+    payload: SkillUpdate,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
-) -> ResponsePatchSkill:
+) -> SkillRead:
     try:
         if scope == "user_vs_skills":
             skill: SkillDescription = await update_user_skill_by_skill_id(
@@ -135,7 +136,7 @@ async def patch_skill(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Unsupported scope: '{scope}'"
             )
-        return ResponsePatchSkill(
+        return SkillRead(
             **asdict(skill)
         )
     except ValueError as e:

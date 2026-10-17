@@ -2,9 +2,10 @@ from typing import Annotated
 from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
-from api.v1.playground.v1_models import AgentModel, AgentTools
+from api.v1.playground.models import AgentModel, AgentTools
 
 
+# Conversation models
 class ConversationCreate(BaseModel):
     """Request body for a conversation turn.
 
@@ -36,3 +37,26 @@ class ConversationRead(BaseModel):
     """A conversation turn as returned by the API."""
     thread_id: Annotated[UUID, Field(description="ID of the thread the turn belongs to.")]
     messages: Annotated[list, Field(description="Messages in the thread.")]
+
+
+# Translation models
+class TranslationParameters(BaseModel):
+    temperature: float = 0.1
+
+
+class TranslationCreate(BaseModel):
+    from_lang_code: str
+    to_lang_code: str
+    parameters: TranslationParameters
+    prompt: str
+
+
+class TranslationRead(BaseModel):
+    prompt: str
+    translation: str
+    from_lang_code: str
+    to_lang_code: str
+
+
+class TranslationLanguagesRead(BaseModel):
+    languages: list[str]
