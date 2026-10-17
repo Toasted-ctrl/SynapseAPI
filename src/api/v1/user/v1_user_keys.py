@@ -1,12 +1,17 @@
 from fastapi import APIRouter, status, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from auth.dep_verify_user import depends_verify_user, VerifiedUser
+from core.logging import get_logger
 from database.session import get_db_session
 from database.providers import UserProviderRegistry, get_all_provider_configurations
-from database.user_keys import get_or_store_key
+from database.user_keys import get_or_store_key, delete_user_key_by_key_id, KeyNotFoundError
 
 from .models import UserKeyCreate, UserKeyRead
+
+
+log = get_logger()
 
 
 router = APIRouter()
@@ -44,3 +49,33 @@ async def store_user_key(
         status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
         detail=f"No keys can be configured for Provider '{payload.provider}'"
     )
+
+
+@router.delete(
+    path="/settings/user/keys",
+    tags=["User Settings"],
+    description="Deletes a User's provider API key.",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_user_key(
+    key_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    user: VerifiedUser = Depends(depends_verify_user)
+) -> None:
+    try:
+        await delete_user_key_by_key_id(
+            session=session,
+            key_id=key_id,
+            user_id=user.id
+        )
+    except KeyNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unable to delete API key: {str(e)}"
+        )
+    except Exception as e:
+        log.exception(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unexpected error: Please contact your administrator"
+        )

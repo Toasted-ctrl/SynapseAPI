@@ -120,7 +120,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Providers    | `GET /providers/models`, `GET /providers/models/sampling`, `GET /providers/configuration` | Available models and provider setup |
 | Tools        | `GET /tools/mcp`                                                          | Available MCP servers                           |
 | Translation  | `POST, GET /translation/translategemma`                                   | Translation via TranslateGemma                  |
-| Settings     | `POST /settings/user/keys`                                                | Store your own provider API keys                |
+| Settings     | `POST, DELETE /settings/user/keys`                                        | Store your own provider API keys                |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |
 
 ## Roadmap
