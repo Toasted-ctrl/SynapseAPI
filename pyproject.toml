@@ -1,6 +1,6 @@
 [project]
 name = "synapse-api"
-version = "0.5.20"
+version = "0.5.21"
 description = "SynapseAPI: an API that functions as a general gateway for multiple providers (e.g., Ollama, Anthropic)."
 readme = "README.md"
 requires-python = ">=3.14"
