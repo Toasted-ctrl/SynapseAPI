@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 
@@ -28,6 +29,7 @@ class ProviderRead(BaseModel):
     api_key_configured: bool | None = None
     api_key_id: UUID | None = None
     api_key_short: str | None = None
+    api_key_expiry_date: datetime | None = None
 
 
 class ProvidersRead(BaseModel):

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +37,7 @@ class ProviderConfiguration:
     encrypted_api_key: str | None = None
     api_key_short: str | None = None
     api_key_id: uuid.UUID | None = None
+    api_key_expiry_date: datetime | None = None
 
 
 class UserProviderRegistry:
@@ -202,6 +204,7 @@ async def get_all_provider_configurations(
             api_key_short=next((k.api_key_short for k in keys if k.provider_id == p.id), None),
             api_key_configured=not p.internal and any(k.provider_id == p.id for k in keys),
             api_key_id=next((k.api_key_id for k in keys if k.provider_id == p.id), None),
+            api_key_expiry_date=next((k.expiration_date for k in keys if k.provider_id == p.id), None),
             requires_api_key=not p.internal,
             internal=p.internal
         )
