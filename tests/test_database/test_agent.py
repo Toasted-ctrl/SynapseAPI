@@ -1,3 +1,4 @@
+import json
 import uuid
 
 import pytest
@@ -22,6 +23,7 @@ from database.agent import (
     update_agent_configuration,
 )
 from db_helpers import make_session, params, row
+from security.encryption import decrypt, encrypt
 
 
 
@@ -36,7 +38,11 @@ def make_config(**overrides) -> AgentConfigurationCreate:
 
 def stored_settings(config: AgentConfigurationCreate) -> dict:
     """The settings JSON create_agent_configuration/update_agent_configuration store for a configuration."""
-    return {"version": 1, **config.model_dump(mode="json", exclude={"name"})}
+    settings_dict = {"version": 2, **config.model_dump(mode="json", exclude={"name"})}
+    return {
+        "__encrypted__": True,
+        "data": encrypt(json.dumps(settings_dict))
+    }
 
 
 def integrity_error(constraint: str) -> IntegrityError:
@@ -94,8 +100,12 @@ class TestCreateAgentConfiguration:
         stored = session.added[0]
         assert stored.owner_user_id == user_id
         assert stored.name == "helper"
-        assert stored.settings == stored_settings(config)
-        assert result == AgentConfigurationRead(id=stored.id, **config.model_dump())
+        # Settings are now encrypted - verify structure and that it decrypts correctly
+        assert stored.settings.get("__encrypted__") is True
+        decrypted = json.loads(decrypt(stored.settings["data"]))
+        expected_settings = {"version": 2, **config.model_dump(mode="json", exclude={"name"})}
+        assert decrypted == expected_settings
+        assert result == AgentConfigurationRead(id=stored.id, is_encrypted=True, **config.model_dump())
 
     async def test_stored_settings_exclude_name_and_serialize_uuids(self):
         mcp_id = uuid.uuid4()
@@ -105,9 +115,12 @@ class TestCreateAgentConfiguration:
         await create_agent_configuration(session=session, user_id=uuid.uuid4(), config=config)
 
         stored = session.added[0].settings
-        assert "name" not in stored
-        assert stored["version"] == 1
-        assert stored["tools"]["mcp_ids"] == [str(mcp_id)]
+        # Settings are encrypted
+        assert stored.get("__encrypted__") is True
+        decrypted = json.loads(decrypt(stored["data"]))
+        assert "name" not in decrypted
+        assert decrypted["version"] == 2
+        assert decrypted["tools"]["mcp_ids"] == [str(mcp_id)]
 
     async def test_raises_when_name_taken(self):
         session = make_session(execute=[uuid.uuid4()])
@@ -153,7 +166,8 @@ class TestGetAgentConfiguration:
 
         result = await get_agent_configuration(session=session, user_id=user_id, agent_id=agent_id)
 
-        assert result == AgentConfigurationRead(id=agent_id, **config.model_dump())
+        # Settings are encrypted, so is_encrypted should be True
+        assert result == AgentConfigurationRead(id=agent_id, is_encrypted=True, **config.model_dump())
         assert params(session.execute.await_args) == [agent_id, user_id]
 
     async def test_missing_optional_fields_use_defaults(self):
@@ -185,7 +199,8 @@ class TestGetAgentConfiguration:
         assert "removed_field" not in result.model_dump()
 
     async def test_rejects_newer_version(self):
-        settings = {**stored_settings(make_config()), "version": 99}
+        # Create unencrypted settings with version 99 (newer than CURRENT_SETTINGS_VERSION)
+        settings = {"version": 99, **make_config().model_dump(mode="json", exclude={"name"})}
         session = make_session(execute=[row(id=uuid.uuid4(), name="helper", settings=settings)])
 
         with pytest.raises(ValueError, match="Unsupported agent settings version"):
@@ -238,8 +253,12 @@ class TestUpdateAgentConfiguration:
 
         result = await update_agent_configuration(session=session, user_id=uuid.uuid4(), agent_id=agent_id, config=new_config)
 
-        assert agent.settings == stored_settings(new_config)
-        assert result == AgentConfigurationRead(id=agent_id, **new_config.model_dump())
+        # Settings are now encrypted - verify structure and that it decrypts correctly
+        assert agent.settings.get("__encrypted__") is True
+        decrypted = json.loads(decrypt(agent.settings["data"]))
+        expected_settings = {"version": 2, **new_config.model_dump(mode="json", exclude={"name"})}
+        assert decrypted == expected_settings
+        assert result == AgentConfigurationRead(id=agent_id, is_encrypted=True, **new_config.model_dump())
         session.flush.assert_awaited_once()
 
     async def test_unchanged_name_skips_availability_check(self):

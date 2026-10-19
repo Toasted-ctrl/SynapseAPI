@@ -45,3 +45,7 @@ class AgentConfigurationCreate(AgentConfigurationBase):
 class AgentConfigurationRead(AgentConfigurationBase):
     """An Agent as returned by the API."""
     id: Annotated[UUID, Field(description="ID of the Agent.")]
+    is_encrypted: Annotated[bool, Field(
+        default=False,
+        description="Whether this agent's configuration is stored encrypted."
+    )] = False
