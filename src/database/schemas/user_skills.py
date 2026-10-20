@@ -26,7 +26,7 @@ class UserSkillsT(Base):
     )
 
     description: Mapped[str] = mapped_column(
-        String(1000),
+        Text,
         nullable=True
     )
 
