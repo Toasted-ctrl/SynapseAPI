@@ -1,5 +1,4 @@
 import uuid
-from dataclasses import asdict
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +7,7 @@ from core.logging import get_logger
 from database.session import get_db_session
 from database.user_skills import post_user_skill, get_user_skill_by_skill_id, SkillDescription, update_user_skill_by_skill_id
 
-from .models import SkillCreate, SkillCreateRead, SkillRead, SkillUpdate
+from .models import SkillCreate, SkillCreateRead, SkillRead, SkillReplace
 
 
 router = APIRouter()
@@ -35,7 +34,7 @@ async def create_skill(
     """Create a new user skill.
     
     This endpoint creates a user skill record in the database and stores the skill description
-    in the Vector Store for semantic search capabilities.
+    in the Vector Store for semantic search capabilities. New skills are encrypted by default.
     """
     # TODO: In prep for upcoming skills (for Agents, etc.)
     if not scope in ["user_vs_skills"]:
@@ -51,7 +50,8 @@ async def create_skill(
             description=payload.description,
             skill_text=payload.skill_text,
             scope=scope,
-            parameters_schema=payload.parameters_schema
+            parameters_schema=payload.parameters_schema,
+            encrypt=True
         )
         
         return SkillCreateRead(
@@ -99,7 +99,12 @@ async def get_skill(
                 detail=f"Unsupported scope: '{scope}'"
             )
         return SkillRead(
-            **asdict(skill)
+            skill_id=skill.skill_id,
+            name=skill.name,
+            description=skill.description,
+            instructions=skill.instructions,
+            parameter_schema=skill.parameter_schema,
+            is_encrypted=skill.is_encrypted
         )
     except ValueError as e:
         raise HTTPException(
@@ -108,18 +113,20 @@ async def get_skill(
         )
 
 
-@router.patch(
+@router.put(
     "/skill",
     tags=tags,
     description=(
-        "Updated a skill its instructions. For complete updates to the skill, including its description, "
-        "remove the current skill and add a new one."
+        "Replaces a skill with new values. "
+        "All fields (name, description, skill_text, parameters_schema) must be provided. "
+        "The Vector Store entry is also updated with the new description for semantic search. "
+        "Data is always encrypted."
     ),
     response_model=SkillRead
 )
-async def patch_skill(
+async def put_skill(
     scope: str,
-    payload: SkillUpdate,
+    payload: SkillReplace,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session)
 ) -> SkillRead:
@@ -129,7 +136,12 @@ async def patch_skill(
                 session=session,
                 user_id=user.id,
                 skill_id=payload.skill_id,
-                instructions=payload.instructions
+                name=payload.name,
+                instructions=payload.skill_text,
+                description=payload.description,
+                parameters_schema=payload.parameters_schema,
+                encrypt=True,
+                scope=scope
             )
         else:
             raise HTTPException(
@@ -137,10 +149,20 @@ async def patch_skill(
                 detail=f"Unsupported scope: '{scope}'"
             )
         return SkillRead(
-            **asdict(skill)
+            skill_id=skill.skill_id,
+            name=skill.name,
+            description=skill.description,
+            instructions=skill.instructions,
+            parameter_schema=skill.parameter_schema,
+            is_encrypted=skill.is_encrypted
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Failed to fetch skill: {str(e)}"
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )

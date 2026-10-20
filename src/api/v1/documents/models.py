@@ -3,7 +3,6 @@ from typing import Optional
 from uuid import UUID
 
 
-# Document models
 class Document(BaseModel):
     name: str
     id: UUID
@@ -19,7 +18,6 @@ class DocumentDeleteRead(BaseModel):
     is_deleted: bool
 
 
-# Vector Embedding models
 class VectorEmbeddingCreate(BaseModel):
     prompt: str
     provider: str
@@ -35,7 +33,6 @@ class VectorEmbeddingRead(BaseModel):
     embedding: list[float]
 
 
-# Vector Store models
 class Metadata(BaseModel):
     document_name: str
 
@@ -53,7 +50,6 @@ class VectorStoreSearchCreate(BaseModel):
     query: str
 
 
-# Skill models
 class SkillCreate(BaseModel):
     name: str
     description: str
@@ -70,11 +66,16 @@ class SkillCreateRead(BaseModel):
 class SkillRead(BaseModel):
     skill_id: UUID
     name: str
-    description: str
+    description: Optional[str] = None
     instructions: str
     parameter_schema: Optional[dict] = None
+    is_encrypted: bool = False
 
 
-class SkillUpdate(BaseModel):
+class SkillReplace(BaseModel):
+    """Complete replacement for a skill (PUT). All fields are required and always encrypted."""
     skill_id: UUID
-    instructions: str
+    name: str
+    description: str
+    skill_text: str
+    parameters_schema: Optional[dict] = None
