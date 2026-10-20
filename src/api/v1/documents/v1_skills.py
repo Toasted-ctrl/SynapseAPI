@@ -140,7 +140,6 @@ async def put_skill(
                 instructions=payload.skill_text,
                 description=payload.description,
                 parameters_schema=payload.parameters_schema,
-                encrypt=True,
                 scope=scope
             )
         else:
