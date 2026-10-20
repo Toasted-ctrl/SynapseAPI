@@ -1,7 +1,7 @@
 # Security
 
 > [!NOTE]
-> This document was last reviewed on 2026-09-20.
+> This document was last reviewed on 2026-10-20.
 
 ## Authentication
 This API supports authentication via:
@@ -27,10 +27,10 @@ The following fields are encrypted at rest (the encryption key is only known to 
 - Last name
 - Email
 - User provided API keys
+- Agent configurations
 
 ### Planned
 - Stored messages
-- Agent configurations
 
 ## Data Sharing
 All information is processed locally and is **not** shared with third parties, with one exception: message completion requests and model queries are sent to the relevant external AI provider (e.g., Anthropic) using a User's own provided API keys. Requests to external AI Providers using a personal API key may be logged by the Provider.
