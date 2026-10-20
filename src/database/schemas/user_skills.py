@@ -43,7 +43,8 @@ class UserSkillsT(Base):
     is_encrypted: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
-        default=False
+        default=False,
+        server_default=text("false")
     )
 
     created_date: Mapped[datetime] = mapped_column(
