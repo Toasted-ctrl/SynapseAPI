@@ -34,7 +34,7 @@ class ProvidersT(Base):
     )
 
     langchain_con: Mapped[str] = mapped_column(
-        String(20),
+        String(50),
         nullable=False,
         unique=False
     )

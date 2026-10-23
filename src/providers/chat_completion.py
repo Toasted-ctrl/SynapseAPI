@@ -1,18 +1,15 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
-from typing import AsyncGenerator
-import uuid
 
-from core.langfuse import langfuse_handler
 from core.logging import get_logger
 from providers.dataclasses import LangChainCon
 from security.encryption import decrypt
 
-log = get_logger()
 
-# TODO: Build tests
+log = get_logger()
 
 
 def _build_llm(
@@ -36,21 +33,31 @@ def _build_llm(
     match langchain_con:
         case "ChatAnthropic":
             if encrypted_api_key is None:
-                raise ValueError("encrypted_api_key is required for Anthropic")
+                raise ValueError("encrypted_api_key is required for ChatAnthropic")
             log.debug("Constructing Chat Model: ChatAnthropic")
             return ChatAnthropic(
                 api_key=decrypt(encrypted_api_key),
                 top_k=top_k,
-                **common_kwargs,
+                **common_kwargs
             )
 
         case "ChatOpenAI":
             if encrypted_api_key is None:
-                raise ValueError("encrypted_api_key is required for OpenAI")
+                raise ValueError("encrypted_api_key is required for ChatOpenAI")
             log.debug("Constructing Chat Model: ChatOpenAI")
             return ChatOpenAI(
                 api_key=decrypt(encrypted_api_key),
-                **common_kwargs,
+                **common_kwargs
+            )
+
+        case "ChatGoogleGenerativeAI":
+            if encrypted_api_key is None:
+                raise ValueError("encrypted_api_key is required for ChatGoogleGenerativeAI")
+            log.debug("Constructing Chat Model: ChatGoogleGenerativeAI")
+            return ChatGoogleGenerativeAI(
+                api_key=decrypt(encrypted_api_key),
+                top_k=top_k,
+                **common_kwargs
             )
 
         case "ChatOllama":
@@ -64,47 +71,3 @@ def _build_llm(
         case _:
             log.warning(f"Unsupported LangChain Chat Model: '{langchain_con}' ...")
             raise ValueError(f"Unsupported provider: {langchain_con}")
-
-
-async def complete_chat(
-    langchain_con: LangChainCon,
-    model: str,
-    user_id: uuid.UUID,
-    prompt: str,
-    base_url: str,
-    stream: bool,
-    encrypted_api_key: str | None = None,
-    temperature: float | None = None,
-    top_k: int | None = None,
-    top_p: float | None = None,
-) -> AsyncGenerator[str, None]:
-    """Async generator that yields content chunks from any supported Provider."""
-
-    llm = _build_llm(
-        langchain_con=langchain_con,
-        model=model,
-        base_url=base_url,
-        temperature=temperature,
-        top_k=top_k,
-        top_p=top_p,
-        encrypted_api_key=encrypted_api_key,
-    )
-
-    config = {
-        "callbacks": [langfuse_handler],
-        "metadata": {
-            "user_id": str(user_id)
-        }
-    }
-
-    log.debug("Chat Model constructed, returning/streaming Chat Completion content ...")
-
-    if stream:
-        async for chunk in llm.astream(prompt, config=config):
-            if chunk.content:
-                yield chunk.content
-
-    else:
-        response = await llm.ainvoke(prompt, config=config)
-        if response.content:
-            yield response.content

@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-15.
+> This document was last reviewed on 2026-10-23.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -56,6 +56,7 @@ Every provider listed here has been tested and verified with a personally obtain
 - Ollama (self-hosted)
 - OpenAI
 - Z.ai
+- Google
 
 ## Tech Stack
 
