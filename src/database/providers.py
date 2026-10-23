@@ -3,7 +3,6 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from warnings import deprecated
 import uuid
 
 from core.logging import get_logger
@@ -144,33 +143,6 @@ async def get_or_create_provider(
         requires_api_key=new_provider.requires_api_key,
         langchain_con=new_provider.langchain_con,
         mac_address=new_provider.mac_address
-    )
-
-
-@deprecated("This function is deprecated")
-async def get_provider(
-    session: AsyncSession,
-    provider_name: str
-) -> Provider | None:
-
-    """Fetches the details for ONE Provider."""
-
-    provider = (await session.execute(
-        select(ProvidersT).where(ProvidersT.name == provider_name)
-    )).scalar_one_or_none()
-
-    if not provider:
-        log.debug(f"Provider '{provider_name}' could not be located...")
-        return None
-
-    return Provider(
-        id=provider.id,
-        name=provider.name,
-        base_url=provider.base_url,
-        internal=provider.internal,
-        requires_api_key=provider.requires_api_key,
-        langchain_con=provider.langchain_con,
-        mac_address=provider.mac_address
     )
 
 

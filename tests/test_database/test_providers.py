@@ -10,7 +10,6 @@ from database.providers import (
     UserProviderRegistry,
     get_all_provider_configurations,
     get_or_create_provider,
-    get_provider,
     get_provider_config,
     get_providers_by_id,
     get_providers_by_location,
@@ -129,26 +128,6 @@ class TestGetOrCreateProvider:
             langchain_con="ChatOllama",
             mac_address="00:11:22:33:44:55"
         )
-
-
-@pytest.mark.asyncio
-class TestGetProvider:
-
-    async def test_returns_provider(self):
-        p = _provider_row()
-        session = make_session(execute=[p])
-
-        with pytest.deprecated_call():
-            result = await get_provider(session=session, provider_name="Ollama-1")
-
-        assert result.id == p.id
-        assert params(session.execute.await_args) == ["Ollama-1"]
-
-    async def test_returns_none_when_not_found(self):
-        session = make_session(execute=[None])
-
-        with pytest.deprecated_call():
-            assert await get_provider(session=session, provider_name="nope") is None
 
 
 @pytest.mark.asyncio
