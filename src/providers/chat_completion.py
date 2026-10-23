@@ -52,8 +52,10 @@ def _build_llm(
             log.debug("Constructing Chat Model: ChatGoogleGenerativeAI")
             return ChatGoogleGenerativeAI(
                 api_key=decrypt(encrypted_api_key),
+                model=model,
+                temperature=temperature,
                 top_k=top_k,
-                **common_kwargs
+                top_p=top_p
             )
         case LangChainCon.OLLAMA:
             # Ollama is local — no API key needed

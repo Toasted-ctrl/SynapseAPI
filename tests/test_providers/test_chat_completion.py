@@ -183,7 +183,6 @@ class TestBuildLLM:
         mock_chat_google_generative_ai.assert_called_once_with(
             api_key='test-api-key',
             model='gemini-pro',
-            base_url='https://api.google.com',
             temperature=0.9,
             top_p=0.95,
             top_k=10
@@ -298,7 +297,7 @@ class TestBuildLLM:
 
     # Tests for common kwargs
     def test_common_kwargs_passed_to_all_providers(self, mock_decrypt, mock_chat_anthropic, mock_chat_openai, mock_chat_google_generative_ai, mock_chat_ollama):
-        """Test that model, base_url, temperature, and top_p are passed to all providers."""
+        """Test that model, base_url, temperature, and top_p are passed to all providers (Google ignores base_url)."""
         providers = [
             ("ChatAnthropic", mock_chat_anthropic, "encrypted-key"),
             ("ChatOpenAI", mock_chat_openai, "encrypted-key"),
@@ -324,7 +323,10 @@ class TestBuildLLM:
             mock_class.assert_called_once()
             call_kwargs = mock_class.call_args.kwargs
             assert call_kwargs['model'] == 'test-model'
-            assert call_kwargs['base_url'] == 'https://test.com'
+            if provider_name == "ChatGoogleGenerativeAI":
+                assert 'base_url' not in call_kwargs
+            else:
+                assert call_kwargs['base_url'] == 'https://test.com'
             assert call_kwargs['temperature'] == 0.5
             assert call_kwargs['top_p'] == 0.5
 
