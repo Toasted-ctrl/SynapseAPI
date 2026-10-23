@@ -29,7 +29,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=config.APP_NAME,
+    description=(
+        "SynapseAPI provides a unified interface for AI model interactions, "
+        "including chat, agents, embeddings, translations, and document management. "
+        "It supports multiple providers (OpenAI, Anthropic, Ollama, etc.) and offers "
+        "features like vector storage, MCP tool integration, and user authentication."
+    ),
     version=config.APP_VERSION,
+    contact={
+        "name": config.APP_MAINTAINER,
+    },
     lifespan=lifespan
 )
 

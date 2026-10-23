@@ -8,7 +8,7 @@ from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.playground.v1_models import AgentModel, AgentTools
+from api.v1.playground.models import AgentModel, AgentTools
 from auth.dep_verify_user import depends_verify_user, VerifiedUser
 from core.config import config
 from core.logging import get_logger
@@ -20,7 +20,7 @@ from database.session import get_db_session
 from providers.agent import build_agent_model, stream_agent, run_agent
 from tools.get_tools import get_agent_tools
 
-from .v1_models import ConversationCreate, ConversationRead
+from .models import ConversationCreate, ConversationRead
 
 
 router = APIRouter()

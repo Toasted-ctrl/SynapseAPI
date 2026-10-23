@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Any
 from dataclasses import dataclass
@@ -5,9 +6,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.playground.v1_models import AgentConfigurationCreate, AgentConfigurationRead
+from api.v1.playground.models import AgentConfigurationCreate, AgentConfigurationRead
 from core.logging import get_logger
 from database.mcps import get_mcp_by_id
+from security.encryption import decrypt, encrypt
 
 from .schemas.agent_config import AgentConfigT
 
@@ -20,7 +22,8 @@ log = get_logger()
 # Breaking changes (renames, removals, changed meaning) bump CURRENT_SETTINGS_VERSION
 # and get an upgrade step in _upgrade_settings.
 # Unknown keys are dropped (Pydantic's default), so removed fields don't break old rows.
-CURRENT_SETTINGS_VERSION = 1
+# Version 2 introduced encryption for settings data.
+CURRENT_SETTINGS_VERSION = 2
 
 NAME_UNIQUE_CONSTRAINT = "uq_agent_configs_owner_name"
 
@@ -38,7 +41,12 @@ class AgentReferenceError(ValueError):
 
 
 def _upgrade_settings(settings: dict[str, Any]) -> dict[str, Any]:
-    """Brings stored settings JSON up to CURRENT_SETTINGS_VERSION."""
+    """Decrypts encrypted settings and brings stored settings JSON up to CURRENT_SETTINGS_VERSION."""
+    # Handle encrypted data
+    if settings.get("__encrypted__"):
+        decrypted_json = decrypt(settings["data"])
+        settings = json.loads(decrypted_json)
+    
     version = settings.get("version", 1)
     if version > CURRENT_SETTINGS_VERSION:
         raise ValueError(f"Unsupported agent settings version '{version}'")
@@ -46,18 +54,26 @@ def _upgrade_settings(settings: dict[str, Any]) -> dict[str, Any]:
 
 
 def _to_settings(config: AgentConfigurationCreate) -> dict[str, Any]:
-    """Serialises a configuration to the JSON stored in AgentConfigT.settings."""
-    return {
+    """Serialises and encrypts a configuration to the JSON stored in AgentConfigT.settings."""
+    settings_dict = {
         "version": CURRENT_SETTINGS_VERSION,
         **config.model_dump(mode="json", exclude={"name"})
     }
+    # Store as encrypted string in a wrapper dict
+    return {
+        "__encrypted__": True,
+        "data": encrypt(json.dumps(settings_dict))
+    }
 
 
-def _to_configuration(agent: AgentConfigT) -> AgentConfigurationRead:
+def _to_configuration(agent: AgentConfigT, is_encrypted: bool = False) -> AgentConfigurationRead:
+    """Converts an AgentConfigT row to an AgentConfigurationRead, with optional encryption flag."""
+    decrypted_settings = _upgrade_settings(agent.settings)
     return AgentConfigurationRead.model_validate({
-        **_upgrade_settings(agent.settings),
+        **decrypted_settings,
         "id": agent.id,
-        "name": agent.name
+        "name": agent.name,
+        "is_encrypted": is_encrypted
     })
 
 
@@ -131,7 +147,8 @@ async def create_agent_configuration(
     session.add(agent)
     await _flush_or_name_taken(session=session, name=config.name)
     log.debug(f"Created agent '{agent.id}' for user '{user_id}'")
-    return _to_configuration(agent)
+    # New agents are always encrypted
+    return _to_configuration(agent, is_encrypted=True)
 
 
 async def get_agent_configuration(
@@ -141,7 +158,9 @@ async def get_agent_configuration(
 ) -> AgentConfigurationRead:
     """Fetches an agent configuration owned by the user."""
     agent = await _get_agent_row(session=session, user_id=user_id, agent_id=agent_id)
-    return _to_configuration(agent)
+    # Check encryption status from raw settings BEFORE decryption
+    is_encrypted = agent.settings.get("__encrypted__", False)
+    return _to_configuration(agent, is_encrypted=is_encrypted)
 
 
 @dataclass(frozen=True)
@@ -185,7 +204,8 @@ async def update_agent_configuration(
     agent.settings = _to_settings(config)
     await _flush_or_name_taken(session=session, name=config.name)
     log.debug(f"Updated agent '{agent_id}' for user '{user_id}'")
-    return _to_configuration(agent)
+    # Updated agents are now encrypted
+    return _to_configuration(agent, is_encrypted=True)
 
 
 async def delete_agent_configuration(

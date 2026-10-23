@@ -1,10 +1,11 @@
+import json
 import uuid
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch, call
 
 from database.user_skills import post_user_skill, get_user_skill_by_skill_id, update_user_skill_by_skill_id, SkillDescription
 from database.schemas.user_skills import UserSkillsT
-from db_helpers import make_session, row
+from db_helpers import make_session, row, fake_encrypt, fake_decrypt
 
 
 pytestmark = pytest.mark.asyncio
@@ -13,7 +14,9 @@ pytestmark = pytest.mark.asyncio
 class TestPostUserSkill:
     """Tests for post_user_skill function."""
 
-    async def test_successful_skill_creation(self):
+    @patch('database.user_skills.encrypt', side_effect=fake_encrypt)
+    @patch('database.user_skills.decrypt', side_effect=fake_decrypt)
+    async def test_successful_skill_creation(self, mock_decrypt, mock_encrypt):
         """Test successful creation of a user skill with all components."""
         user_id = uuid.uuid4()
         skill_name = "test_skill"
@@ -100,9 +103,15 @@ class TestPostUserSkill:
             assert isinstance(added_skill, UserSkillsT)
             assert added_skill.user_id == user_id
             assert added_skill.name == skill_name
-            assert added_skill.description == skill_description
-            assert added_skill.skill_text == skill_text
-            assert added_skill.parameters_schema == parameters_schema
+            # Fields are encrypted - decrypt them for comparison
+            assert fake_decrypt(added_skill.description) == skill_description
+            assert fake_decrypt(added_skill.skill_text) == skill_text
+            # parameters_schema is encrypted as a dict with __encrypted__ marker
+            if isinstance(added_skill.parameters_schema, dict) and added_skill.parameters_schema.get("__encrypted__"):
+                decrypted_params = json.loads(fake_decrypt(added_skill.parameters_schema["data"]))
+                assert decrypted_params == parameters_schema
+            else:
+                assert added_skill.parameters_schema == parameters_schema
             
             # Check that vector store operations were called
             mock_get_vs_settings.assert_awaited_once_with(session=session, scope="user_vs_skills")
@@ -114,6 +123,8 @@ class TestPostUserSkill:
             session.commit.assert_not_awaited()
 
 
+
+@pytest.mark.usefixtures("fake_crypto")
 class TestGetUserSkillBySkillId:
     """Tests for get_user_skill_by_skill_id function."""
 
@@ -130,6 +141,7 @@ class TestGetUserSkillBySkillId:
             description="Test description",
             skill_text="def test(): pass",
             parameters_schema={"type": "object"},
+            is_encrypted=False,
             created_date=None,
             created_by="test_user"
         )
@@ -184,6 +196,7 @@ class TestGetUserSkillBySkillId:
             description="Other user's skill",
             skill_text="def other(): pass",
             parameters_schema={},
+            is_encrypted=False,
             created_date=None,
             created_by="other_user"
         )
@@ -211,6 +224,7 @@ class TestGetUserSkillBySkillId:
             description=None,
             skill_text="def test(): pass",
             parameters_schema=None,
+            is_encrypted=False,
             created_date=None,
             created_by="test_user"
         )
@@ -256,7 +270,9 @@ class TestGetUserSkillBySkillId:
         assert isinstance(result, SkillDescription)
         assert result.parameter_schema == {}
 
-    async def test_skill_creation_without_parameters_schema(self):
+    @patch('database.user_skills.encrypt', side_effect=fake_encrypt)
+    @patch('database.user_skills.decrypt', side_effect=fake_decrypt)
+    async def test_skill_creation_without_parameters_schema(self, mock_decrypt, mock_encrypt):
         """Test skill creation without parameters_schema defaults to empty dict."""
         user_id = uuid.uuid4()
         
@@ -296,9 +312,14 @@ class TestGetUserSkillBySkillId:
                 # No parameters_schema provided
             )
             
-            # Check that parameters_schema defaults to empty dict
+            # Check that parameters_schema defaults to empty dict (encrypted if encrypt=True)
             added_skill = session.added[0]
-            assert added_skill.parameters_schema == {}
+            if isinstance(added_skill.parameters_schema, dict) and added_skill.parameters_schema.get("__encrypted__"):
+                # It's encrypted, decrypt it
+                decrypted_params = json.loads(fake_decrypt(added_skill.parameters_schema["data"]))
+                assert decrypted_params == {}
+            else:
+                assert added_skill.parameters_schema == {}
 
     async def test_vector_store_failure_does_not_roll_back_database(self):
         """Test that database records are still created even if vector store operations fail."""
@@ -352,6 +373,8 @@ class TestGetUserSkillBySkillId:
             )
 
 
+
+@pytest.mark.usefixtures("fake_crypto")
 class TestUpdateUserSkillBySkillId:
     """Tests for update_user_skill_by_skill_id function."""
 
@@ -394,8 +417,8 @@ class TestUpdateUserSkillBySkillId:
         assert result.instructions == new_instructions
         assert result.parameter_schema == {"type": "object", "properties": {"param1": {"type": "string"}}}
         
-        # Verify the skill text was updated in the session
-        assert existing_skill.skill_text == new_instructions
+        # Verify the skill text was updated in the session (now encrypted)
+        assert fake_decrypt(existing_skill.skill_text) == new_instructions
         
         # Verify flush was called
         session.flush.assert_awaited_once()
@@ -474,7 +497,7 @@ class TestUpdateUserSkillBySkillId:
         
         assert isinstance(result, SkillDescription)
         assert result.instructions == ""
-        assert existing_skill.skill_text == ""
+        assert fake_decrypt(existing_skill.skill_text) == ""
 
     async def test_update_with_special_characters(self):
         """Test updating a skill with special characters in instructions."""
@@ -504,7 +527,7 @@ class TestUpdateUserSkillBySkillId:
         )
         
         assert result.instructions == special_instructions
-        assert existing_skill.skill_text == special_instructions
+        assert fake_decrypt(existing_skill.skill_text) == special_instructions
 
     async def test_update_preserves_other_fields(self):
         """Test that updating instructions doesn't affect other fields."""
@@ -543,7 +566,13 @@ class TestUpdateUserSkillBySkillId:
         
         # Only skill_text should change
         assert result.instructions == "new instructions"
-        assert existing_skill.skill_text == "new instructions"
+        assert fake_decrypt(existing_skill.skill_text) == "new instructions"
         assert existing_skill.name == original_name
-        assert existing_skill.description == original_description
-        assert existing_skill.parameters_schema == original_params
+        # Other fields are now also encrypted
+        assert fake_decrypt(existing_skill.description) == original_description
+        if isinstance(existing_skill.parameters_schema, dict) and existing_skill.parameters_schema.get("__encrypted__"):
+            import json
+            decrypted_params = json.loads(fake_decrypt(existing_skill.parameters_schema["data"]))
+            assert decrypted_params == original_params
+        else:
+            assert existing_skill.parameters_schema == original_params

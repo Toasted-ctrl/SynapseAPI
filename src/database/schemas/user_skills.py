@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import UUID, String, DateTime, func, text, JSON, Text
+from sqlalchemy import UUID, String, DateTime, func, text, JSON, Text, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database.schemas.base import Base
@@ -26,7 +26,7 @@ class UserSkillsT(Base):
     )
 
     description: Mapped[str] = mapped_column(
-        String(1000),
+        Text,
         nullable=True
     )
 
@@ -38,6 +38,13 @@ class UserSkillsT(Base):
     parameters_schema: Mapped[dict] = mapped_column(
         JSON,
         nullable=True
+    )
+
+    is_encrypted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=text("false")
     )
 
     created_date: Mapped[datetime] = mapped_column(

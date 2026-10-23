@@ -7,7 +7,7 @@ from core.logging import get_logger
 from database.agent import AgentNotFoundError, get_agent_configuration
 from database.session import get_db_session
 
-from .v1_models import AgentConfigurationRead
+from .models import AgentConfigurationRead
 
 
 log = get_logger()

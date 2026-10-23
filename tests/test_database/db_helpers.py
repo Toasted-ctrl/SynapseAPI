@@ -51,4 +51,7 @@ def params(mock_call) -> list:
 
 
 def row(**kwargs) -> SimpleNamespace:
+    # For user_skills compatibility, add is_encrypted=False if not present
+    if 'is_encrypted' not in kwargs and 'description' in kwargs:
+        kwargs['is_encrypted'] = False
     return SimpleNamespace(**kwargs)

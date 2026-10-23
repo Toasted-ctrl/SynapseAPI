@@ -6,7 +6,7 @@ from auth.dep_verify_user import depends_verify_user, VerifiedUser
 from database.agent import update_agent_configuration, AgentNotFoundError, AgentNameTakenError
 from database.session import get_db_session
 
-from .v1_models import AgentConfigurationCreate, AgentConfigurationRead
+from .models import AgentConfigurationCreate, AgentConfigurationRead
 
 
 router = APIRouter()

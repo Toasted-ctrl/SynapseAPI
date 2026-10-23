@@ -9,8 +9,9 @@ def fake_crypto(monkeypatch):
     import database.person
     import database.store_client
     import database.user_keys
+    import database.user_skills
 
-    for module in (database.person, database.store_client, database.user_keys):
+    for module in (database.person, database.store_client, database.user_keys, database.user_skills):
         if hasattr(module, "encrypt"):
             monkeypatch.setattr(module, "encrypt", fake_encrypt)
         if hasattr(module, "decrypt"):

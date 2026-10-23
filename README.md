@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-15.
+> This document was last reviewed on 2026-10-23.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -56,6 +56,7 @@ Every provider listed here has been tested and verified with a personally obtain
 - Ollama (self-hosted)
 - OpenAI
 - Z.ai
+- Google
 
 ## Tech Stack
 
@@ -120,7 +121,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Providers    | `GET /providers/models`, `GET /providers/models/sampling`, `GET /providers/configuration` | Available models and provider setup |
 | Tools        | `GET /tools/mcp`                                                          | Available MCP servers                           |
 | Translation  | `POST, GET /translation/translategemma`                                   | Translation via TranslateGemma                  |
-| Settings     | `POST /settings/user/keys`                                                | Store your own provider API keys                |
+| Settings     | `POST, DELETE /settings/user/keys`                                        | Store your own provider API keys                |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |
 
 ## Roadmap
@@ -128,12 +129,14 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 ### Short Term
 - [ ] HMAC hashing and verification for each path.
 - [ ] Locate which server currently supports TranslateGemma: check internal servers first, then external ones, and prefer internal since it is free of charge.
+- [ ] Add reranker to Vector Search.
 
 ### Long Term
 - [x] Agent building (create, read, update, delete).
 - [ ] Support for more login providers.
 - [ ] Log conversation IDs and history in a conversation table.
 - [ ] Share agents with other users.
+- [ ] Add encryption for checkpointer blob storage.
 
 ## Contributing
 PRs are welcome! Before opening one, please make sure the tests pass:
