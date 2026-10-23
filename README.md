@@ -129,6 +129,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 ### Short Term
 - [ ] HMAC hashing and verification for each path.
 - [ ] Locate which server currently supports TranslateGemma: check internal servers first, then external ones, and prefer internal since it is free of charge.
+- [ ] Add reranker to Vector Search.
 
 ### Long Term
 - [x] Agent building (create, read, update, delete).
