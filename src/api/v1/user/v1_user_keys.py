@@ -36,6 +36,7 @@ async def store_user_key(
         sk = await get_or_store_key(
             session=session,
             api_key=payload.api_key,
+            expiry_days=payload.expiry_days,
             user_id=user.id,
             provider_id=p[payload.provider].id
         )

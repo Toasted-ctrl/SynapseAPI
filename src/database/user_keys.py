@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -58,7 +58,8 @@ async def get_or_store_key(
     session: AsyncSession,
     api_key: str,
     user_id: UUID,
-    provider_id: UUID
+    provider_id: UUID,
+    expiry_days: int | None = None
 ) -> ProviderAPIKey:
     """Adds a new API key to the database for the user.
     Returns the existing key if the user already has a key configured for the 
@@ -99,6 +100,8 @@ async def get_or_store_key(
         api_key_short=api_key[:10],
         provider_id=provider_id
     )
+    if expiry_days is not None:
+        new_key.expiration_date = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=expiry_days)
     session.add(new_key)
     await session.flush()
     log.debug(f"New key added for User '{new_key.user_id}' for Provider '{new_key.provider_id}'...")
