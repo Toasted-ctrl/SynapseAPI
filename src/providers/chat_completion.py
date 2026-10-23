@@ -22,16 +22,14 @@ def _build_llm(
     encrypted_api_key: str | None,
 ) -> BaseChatModel:
     """Construct the correct LangChain chat model for the given provider."""
-
     common_kwargs = {
         "model": model,
         "base_url": base_url,
         "temperature": temperature,
         "top_p": top_p,
     }
-
     match langchain_con:
-        case "ChatAnthropic":
+        case LangChainCon.ANTHROPIC:
             if encrypted_api_key is None:
                 raise ValueError("encrypted_api_key is required for ChatAnthropic")
             log.debug("Constructing Chat Model: ChatAnthropic")
@@ -40,8 +38,7 @@ def _build_llm(
                 top_k=top_k,
                 **common_kwargs
             )
-
-        case "ChatOpenAI":
+        case LangChainCon.OPENAI:
             if encrypted_api_key is None:
                 raise ValueError("encrypted_api_key is required for ChatOpenAI")
             log.debug("Constructing Chat Model: ChatOpenAI")
@@ -49,8 +46,7 @@ def _build_llm(
                 api_key=decrypt(encrypted_api_key),
                 **common_kwargs
             )
-
-        case "ChatGoogleGenerativeAI":
+        case LangChainCon.GOOGLE:
             if encrypted_api_key is None:
                 raise ValueError("encrypted_api_key is required for ChatGoogleGenerativeAI")
             log.debug("Constructing Chat Model: ChatGoogleGenerativeAI")
@@ -59,15 +55,13 @@ def _build_llm(
                 top_k=top_k,
                 **common_kwargs
             )
-
-        case "ChatOllama":
+        case LangChainCon.OLLAMA:
             # Ollama is local — no API key needed
             log.debug("Constructing Chat Model: ChatOllama")
             return ChatOllama(
                 top_k=top_k,
                 **common_kwargs
             )
-
         case _:
             log.warning(f"Unsupported LangChain Chat Model: '{langchain_con}' ...")
             raise ValueError(f"Unsupported provider: {langchain_con}")
