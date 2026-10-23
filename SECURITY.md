@@ -1,7 +1,7 @@
 # Security
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-20.
+> This document was last reviewed on 2026-10-23.
 
 ## Authentication
 This API supports authentication via:
@@ -28,6 +28,7 @@ The following fields are encrypted at rest (the encryption key is only known to 
 - Email
 - User provided API keys
 - Agent configurations
+- Skills
 
 ### Planned
 - Stored messages

@@ -135,6 +135,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 - [ ] Support for more login providers.
 - [ ] Log conversation IDs and history in a conversation table.
 - [ ] Share agents with other users.
+- [ ] Add encryption for checkpointer blob storage.
 
 ## Contributing
 PRs are welcome! Before opening one, please make sure the tests pass:
