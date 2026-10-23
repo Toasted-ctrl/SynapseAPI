@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +35,7 @@ async def get_user_active_keys(
         select(UserKeysT)
         .where(
             UserKeysT.user_id == user_id,
-            UserKeysT.expiration_date > datetime.now()
+            UserKeysT.expiration_date > datetime.now(timezone.utc).replace(tzinfo=None)
         )
     )).all()
 
@@ -74,7 +74,7 @@ async def get_or_store_key(
         select(UserKeysT)
         .where(
             UserKeysT.user_id == user_id,
-            UserKeysT.expiration_date > datetime.now(),
+            UserKeysT.expiration_date > datetime.now(timezone.utc).replace(tzinfo=None),
             UserKeysT.provider_id == provider_id
         )
         .limit(1)
