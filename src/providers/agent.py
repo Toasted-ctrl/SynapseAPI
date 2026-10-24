@@ -1,6 +1,8 @@
 from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_tool_call
 from langchain_core.messages import AIMessageChunk, ToolMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.errors import GraphBubbleUp
 from langgraph.graph.state import CompiledStateGraph
 from typing import AsyncGenerator, Any, TypedDict, Literal
 import uuid
@@ -14,6 +16,26 @@ log = get_logger()
 
 
 # TODO: Create tests for all functions here.
+
+
+@wrap_tool_call
+async def _tool_errors_to_model(request, handler):
+    """Returns any tool exception (e.g. MCP protocol/transport errors) to the model
+    as an error ToolMessage, instead of letting it abort the whole agent run."""
+    try:
+        return await handler(request)
+    except GraphBubbleUp:
+        # LangGraph control flow (interrupts etc.), must propagate.
+        raise
+    except Exception as e:
+        tool_name = request.tool_call["name"]
+        log.warning(f"Tool '{tool_name}' raised an error: {e!r}")
+        return ToolMessage(
+            content=f"Tool '{tool_name}' failed with error: {e}",
+            name=tool_name,
+            tool_call_id=request.tool_call["id"],
+            status="error",
+        )
 
 
 def build_agent_model(
@@ -47,7 +69,8 @@ def build_agent_model(
         model=model,
         tools=tools,
         system_prompt=system_prompt,
-        checkpointer=checkpointer
+        checkpointer=checkpointer,
+        middleware=[_tool_errors_to_model]
     )
 
     log.debug("Agent created, returning ...")

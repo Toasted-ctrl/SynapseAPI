@@ -163,7 +163,6 @@ async def conversation(
             "messages": [_serialize_event(m) for m in result['messages']]
         }
 
-
     except (ConnectTimeout, ConnectError):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -229,30 +228,41 @@ async def conversation_stream(
         )
 
         async def event_stream(thread_id: uuid.UUID):
-            async with AsyncPostgresSaver.from_conn_string(
-                conn_string=config.PG_CHECKPOINTER_URL
-            ) as checkpointer:
-                
-                agent = build_agent_model(
-                    langchain_con=prov.langchain_con,
-                    model=settings.model.name,
-                    base_url=prov.base_url,
-                    temperature=settings.model.parameters.temperature,
-                    top_k=settings.model.parameters.top_k,
-                    top_p=settings.model.parameters.top_p,
-                    encrypted_api_key=prov.encrypted_api_key,
-                    tools=tools,
-                    system_prompt=settings.system_prompt,
-                    checkpointer=checkpointer,
-                )
+            # Headers are already sent once streaming starts, so errors are
+            # reported to the client as a final 'error' event instead of an HTTP status.
+            try:
+                async with AsyncPostgresSaver.from_conn_string(
+                    conn_string=config.PG_CHECKPOINTER_URL
+                ) as checkpointer:
 
-                async for event in stream_agent(
-                    agent=agent,
-                    prompt=payload.prompt,
-                    thread_id=thread_id,
-                    user_id=user.id
-                ):
-                    yield f"data: {json.dumps(_serialize_event(event=event))}\n\n"
+                    agent = build_agent_model(
+                        langchain_con=prov.langchain_con,
+                        model=settings.model.name,
+                        base_url=prov.base_url,
+                        temperature=settings.model.parameters.temperature,
+                        top_k=settings.model.parameters.top_k,
+                        top_p=settings.model.parameters.top_p,
+                        encrypted_api_key=prov.encrypted_api_key,
+                        tools=tools,
+                        system_prompt=settings.system_prompt,
+                        checkpointer=checkpointer,
+                    )
+
+                    async for event in stream_agent(
+                        agent=agent,
+                        prompt=payload.prompt,
+                        thread_id=thread_id,
+                        user_id=user.id
+                    ):
+                        yield f"data: {json.dumps(_serialize_event(event=event))}\n\n"
+
+            except (ConnectTimeout, ConnectError):
+                error = {"type": "error", "data": {"detail": "Unable to connect to Provider"}}
+                yield f"data: {json.dumps(error)}\n\n"
+            except Exception as e:
+                log.exception(e)
+                error = {"type": "error", "data": {"detail": "Agent run failed unexpectedly"}}
+                yield f"data: {json.dumps(error)}\n\n"
 
         return StreamingResponse(
             event_stream(thread_id=thread_id),
