@@ -61,7 +61,7 @@ async def post_translation_translategemma(
             temperature=payload.parameters.temperature,
             base_url=provider.base_url,
         )
-    except ConnectTimeout, ConnectError:
+    except (ConnectTimeout, ConnectError):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to connect to Provider",

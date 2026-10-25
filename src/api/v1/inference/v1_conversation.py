@@ -148,7 +148,7 @@ async def conversation(
             "messages": [_serialize_event(m) for m in result["messages"]],
         }
 
-    except ConnectTimeout, ConnectError:
+    except (ConnectTimeout, ConnectError):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to connect to Provider",
@@ -235,7 +235,7 @@ async def conversation_stream(
                     ):
                         yield f"data: {json.dumps(_serialize_event(event=event))}\n\n"
 
-            except ConnectTimeout, ConnectError:
+            except (ConnectTimeout, ConnectError):
                 error = {
                     "type": "error",
                     "data": {"detail": "Unable to connect to Provider"},
@@ -255,7 +255,7 @@ async def conversation_stream(
             headers={"X-Thread-ID": str(thread_id)},
         )
 
-    except ConnectTimeout, ConnectError:
+    except (ConnectTimeout, ConnectError):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to connect to Provider",
