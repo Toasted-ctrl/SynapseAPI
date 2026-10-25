@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
-from core.config import config
 from core.logging import get_logger
+from core.model_types import model_config
 from database.providers import ProviderConfiguration, get_all_provider_configurations
 from database.session import get_db_session
 from providers.vector_embedding import get_embedding
@@ -34,7 +34,7 @@ async def post_test_vector_embedding(
 ) -> VectorEmbeddingRead:
 
     try:
-        if payload.model not in config.VECTOR_EMBEDDING_MODELS:
+        if payload.model not in await model_config.vector_embedding_models():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"'{payload.model}' is not a valid embedding model",
