@@ -1,6 +1,6 @@
 [project]
 name = "synapse-api"
-version = "0.5.33"
+version = "0.5.34"
 description = "SynapseAPI: an API that functions as a general gateway for multiple providers (e.g., Ollama, Anthropic)."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -50,6 +50,19 @@ filterwarnings = [
 [tool.ruff]
 line-length = 88
 target-version = "py314"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Header",
+    "fastapi.Body",
+    "fastapi.Cookie",
+    "fastapi.Form",
+    "fastapi.File",
+    "fastapi.Security",
+]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I"]
