@@ -1,15 +1,16 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from langchain_core.documents import Document
 from langchain_qdrant import QdrantVectorStore
 
 from vs.save_docs import (
+    VectorStoreScope,
     _chunker,
     _normalize_texts,
     _prep_docs_personal_data,
     _sanitize_metadata,
     save_docs,
-    VectorStoreScope
 )
 
 
@@ -29,7 +30,7 @@ class TestChunker:
         assert len(result) > 1
         assert all(chunk != long_text for chunk in result)
 
-    @patch('vs.save_docs.count_tokens')
+    @patch("vs.save_docs.count_tokens")
     def test_token_count_border_case(self, mock_count_tokens):
         """Test behavior at exactly 500 tokens."""
         mock_count_tokens.return_value = 500
@@ -66,6 +67,7 @@ class TestSanitizeMetadata:
     def test_converts_uuid_to_string(self):
         """Test that UUID values are converted to strings."""
         import uuid
+
         test_uuid = uuid.uuid4()
         metadatas = [{"id": test_uuid, "name": "test"}]
         result = _sanitize_metadata(metadatas)
@@ -91,9 +93,9 @@ class TestPrepDocsPersonalData:
         """Test document creation with metadata."""
         texts = ["test text"]
         metadatas = [{"user-id": "user123", "document-name": "test_doc"}]
-        
+
         result = _prep_docs_personal_data(texts, metadatas)
-        
+
         assert len(result) == 1
         assert isinstance(result[0], Document)
         assert result[0].page_content == "test text"
@@ -105,9 +107,9 @@ class TestPrepDocsPersonalData:
         """Test that long text creates multiple document chunks."""
         long_text = "word " * 1000
         metadatas = [{"user-id": "user123", "document-name": "long_doc"}]
-        
+
         result = _prep_docs_personal_data([long_text], metadatas)
-        
+
         assert len(result) > 1
         # All chunks should have the same document-hash
         hashes = [doc.metadata["document-hash"] for doc in result]
@@ -117,9 +119,9 @@ class TestPrepDocsPersonalData:
         """Test handling of multiple text/metadata pairs."""
         texts = ["text one", "text two"]
         metadatas = [{"user-id": "user1"}, {"user-id": "user2"}]
-        
+
         result = _prep_docs_personal_data(texts, metadatas)
-        
+
         assert len(result) == 2
         assert result[0].metadata["user-id"] == "user1"
         assert result[1].metadata["user-id"] == "user2"
@@ -139,10 +141,12 @@ class TestVectorStoreScope:
 class TestSaveDocs:
     """Tests for save_docs function."""
 
-    @patch('vs.save_docs._normalize_texts')
-    @patch('vs.save_docs._sanitize_metadata')
-    @patch('vs.save_docs._prep_docs_personal_data')
-    def test_successful_save_user_files(self, mock_prep_docs, mock_sanitize, mock_normalize):
+    @patch("vs.save_docs._normalize_texts")
+    @patch("vs.save_docs._sanitize_metadata")
+    @patch("vs.save_docs._prep_docs_personal_data")
+    def test_successful_save_user_files(
+        self, mock_prep_docs, mock_sanitize, mock_normalize
+    ):
         """Test successful document saving for USER_FILES scope."""
         mock_vs = MagicMock(spec=QdrantVectorStore)
         mock_vs.add_documents.return_value = ["doc_id_1", "doc_id_2"]
@@ -158,22 +162,28 @@ class TestSaveDocs:
             scope=VectorStoreScope.USER_FILES,
             texts=["test text"],
             metadatas=[{"user-id": "user1"}],
-            required_metadata=["user-id"]
+            required_metadata=["user-id"],
         )
 
         assert result == ["doc_id_1", "doc_id_2"]
         mock_vs.add_documents.assert_called_once()
 
-    @patch('vs.save_docs._normalize_texts')
-    @patch('vs.save_docs._sanitize_metadata')
-    @patch('vs.save_docs._prep_docs_personal_data')
-    def test_successful_save_user_skills(self, mock_prep_docs, mock_sanitize, mock_normalize):
+    @patch("vs.save_docs._normalize_texts")
+    @patch("vs.save_docs._sanitize_metadata")
+    @patch("vs.save_docs._prep_docs_personal_data")
+    def test_successful_save_user_skills(
+        self, mock_prep_docs, mock_sanitize, mock_normalize
+    ):
         """Test successful document saving for USER_SKILLS scope."""
         mock_vs = MagicMock(spec=QdrantVectorStore)
         mock_vs.add_documents.return_value = ["skill_doc_id"]
 
         mock_prep_docs.return_value = [
-            Document(id="skill_doc", page_content="skill content", metadata={"user-id": "user1", "skill-id": "skill1"})
+            Document(
+                id="skill_doc",
+                page_content="skill content",
+                metadata={"user-id": "user1", "skill-id": "skill1"},
+            )
         ]
         mock_normalize.return_value = ["normalized skill content"]
         mock_sanitize.return_value = [{"user-id": "user1", "skill-id": "skill1"}]
@@ -183,26 +193,30 @@ class TestSaveDocs:
             scope=VectorStoreScope.USER_SKILLS,
             texts=["skill description"],
             metadatas=[{"user-id": "user1", "skill-id": "skill1"}],
-            required_metadata=["user-id"]
+            required_metadata=["user-id"],
         )
 
         assert result == ["skill_doc_id"]
         mock_vs.add_documents.assert_called_once()
 
-    @patch('vs.save_docs._normalize_texts')
-    @patch('vs.save_docs._sanitize_metadata')
-    def test_missing_required_metadata_raises_error(self, mock_sanitize, mock_normalize):
+    @patch("vs.save_docs._normalize_texts")
+    @patch("vs.save_docs._sanitize_metadata")
+    def test_missing_required_metadata_raises_error(
+        self, mock_sanitize, mock_normalize
+    ):
         """Test that missing required metadata raises ValueError."""
         mock_normalize.return_value = ["normalized text"]
         mock_sanitize.return_value = [{"wrong-key": "value"}]
 
-        with pytest.raises(ValueError, match="Metadata at index 0 missing required keys"):
+        with pytest.raises(
+            ValueError, match="Metadata at index 0 missing required keys"
+        ):
             save_docs(
                 vector_store=MagicMock(spec=QdrantVectorStore),
                 scope=VectorStoreScope.USER_FILES,
                 texts=["test text"],
                 metadatas=[{"wrong-key": "value"}],
-                required_metadata=["user-id"]
+                required_metadata=["user-id"],
             )
 
     def test_mismatched_texts_and_metadatas_raises_error(self):
@@ -213,7 +227,7 @@ class TestSaveDocs:
                 scope=VectorStoreScope.USER_FILES,
                 texts=["text1", "text2"],
                 metadatas=[{"user-id": "user1"}],
-                required_metadata=[]
+                required_metadata=[],
             )
 
     def test_unsupported_scope_raises_error(self):
@@ -224,17 +238,19 @@ class TestSaveDocs:
                 scope="unsupported_scope",
                 texts=["test text"],
                 metadatas=[{"user-id": "user1"}],
-                required_metadata=[]
+                required_metadata=[],
             )
 
     def test_required_metadata_without_metadatas_raises_error(self):
         """Test that required_metadata without metadatas raises ValueError."""
-        with pytest.raises(ValueError, match="required_metadata specified but no metadatas provided"):
+        with pytest.raises(
+            ValueError, match="required_metadata specified but no metadatas provided"
+        ):
             save_docs(
                 vector_store=MagicMock(spec=QdrantVectorStore),
                 scope=VectorStoreScope.USER_FILES,
                 texts=["test text"],
-                required_metadata=["user-id"]
+                required_metadata=["user-id"],
             )
 
     def test_unsupported_vector_store_raises_error(self):
@@ -245,5 +261,5 @@ class TestSaveDocs:
                 scope=VectorStoreScope.USER_FILES,
                 texts=["test text"],
                 metadatas=[{"user-id": "user1"}],
-                required_metadata=[]
+                required_metadata=[],
             )

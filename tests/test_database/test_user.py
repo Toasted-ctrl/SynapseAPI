@@ -1,17 +1,15 @@
 import uuid
 
 import pytest
+from db_helpers import make_session, params, row
 
 from database.schemas.persons_users import UsersT
 from database.user import User, UserDetails, get_or_store_user, get_user_by_user_id
-from db_helpers import make_session, params, row
-
 
 pytestmark = pytest.mark.asyncio
 
 
 class TestGetUserByUserId:
-
     async def test_returns_user_details(self):
         user_id, person_id = uuid.uuid4(), uuid.uuid4()
         session = make_session(execute=[row(id=user_id, person_id=person_id)])
@@ -35,7 +33,6 @@ class TestGetUserByUserId:
 
 
 class TestGetOrStoreUser:
-
     async def test_returns_existing_user_without_insert(self):
         existing_id = uuid.uuid4()
         session = make_session(scalar=[row(id=existing_id)])
@@ -44,7 +41,7 @@ class TestGetOrStoreUser:
             session=session,
             person_id=uuid.uuid4(),
             api_key_id=uuid.uuid4(),
-            key_type="User"
+            key_type="User",
         )
 
         assert result == User(id=existing_id)
@@ -61,7 +58,7 @@ class TestGetOrStoreUser:
             api_key_id=api_key_id,
             key_type="Application",
             login_provider="Google",
-            external_id="google-sub"
+            external_id="google-sub",
         )
 
         [added] = session.added
@@ -83,10 +80,12 @@ class TestGetOrStoreUser:
             api_key_id=api_key_id,
             key_type="Application",
             login_provider="Google",
-            external_id="google-sub"
+            external_id="google-sub",
         )
 
-        assert {person_id, api_key_id, "Google", "google-sub"} <= set(params(session.scalar.await_args))
+        assert {person_id, api_key_id, "Google", "google-sub"} <= set(
+            params(session.scalar.await_args)
+        )
 
     async def test_application_user_requires_external_id(self):
         session = make_session()
@@ -96,7 +95,7 @@ class TestGetOrStoreUser:
                 session=session,
                 person_id=uuid.uuid4(),
                 api_key_id=uuid.uuid4(),
-                key_type="Application"
+                key_type="Application",
             )
 
         session.scalar.assert_not_awaited()

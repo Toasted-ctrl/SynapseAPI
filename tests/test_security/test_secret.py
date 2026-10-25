@@ -1,9 +1,7 @@
-import pytest
 from security.secret import create_secret
 
 
 class TestCreateSecret:
-
     def test_returns_string(self):
         """Test that create_secret returns a string."""
         result = create_secret()
@@ -68,7 +66,8 @@ class TestCreateSecret:
 
         # Should be safe to use in URLs
         import urllib.parse
-        encoded = urllib.parse.quote(result, safe='')
+
+        encoded = urllib.parse.quote(result, safe="")
         # When URL-encoded, it should either be the same or only minimally different
         assert encoded == result or len(encoded) <= len(result) + 5
 
@@ -89,9 +88,10 @@ class TestCreateSecret:
 
         # Should not contain characters that need escaping
         import re
+
         # URL-safe characters per RFC 3986 unreserved: A-Z a-z 0-9 - _ . ~
         # token_urlsafe uses base64url which is A-Z a-z 0-9 - _
-        assert re.match(r'^[A-Za-z0-9\-_]+$', result)
+        assert re.match(r"^[A-Za-z0-9\-_]+$", result)
 
     def test_multiple_sequential_calls_are_independent(self):
         """Test that sequential calls don't produce predictable patterns."""

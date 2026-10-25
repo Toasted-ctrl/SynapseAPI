@@ -1,11 +1,11 @@
 from dataclasses import dataclass
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
 from database.schemas.vector_store import VectorStoreSettingsT
 from database.schemas.vector_store_collections import VectorStoreCollectionT
-
 
 log = get_logger()
 
@@ -26,28 +26,35 @@ class VectorStoreConfig:
 
 
 async def get_vector_store_settings(
-    scope: str,
-    session: AsyncSession
+    scope: str, session: AsyncSession
 ) -> VectorStoreConfig:
-    """Fetches and returns the Vector Store collection and configuration details, 
+    """Fetches and returns the Vector Store collection and configuration details,
     to enable building a Vector Store client."""
 
     log.debug(f"Retrieving Vector Store settings for scope '{scope}' ...")
-    col: VectorStoreCollectionT | None = (await session.execute(
-        select(VectorStoreCollectionT).where(VectorStoreCollectionT.scope == scope)
-    )).scalar_one_or_none()
+    col: VectorStoreCollectionT | None = (
+        await session.execute(
+            select(VectorStoreCollectionT).where(VectorStoreCollectionT.scope == scope)
+        )
+    ).scalar_one_or_none()
 
     if not col:
         log.info(f"No Vector Store found with scope '{scope}'.")
         raise ValueError(f"Vector Store with name '{scope}' does not exist ...")
 
-    vs: VectorStoreSettingsT | None = (await session.execute(
-        select(VectorStoreSettingsT).where(VectorStoreSettingsT.id == col.vector_store_id)
-    )).scalar_one_or_none()
+    vs: VectorStoreSettingsT | None = (
+        await session.execute(
+            select(VectorStoreSettingsT).where(
+                VectorStoreSettingsT.id == col.vector_store_id
+            )
+        )
+    ).scalar_one_or_none()
 
     if not vs:
         log.error(f"No Vector Store instance found with id '{col.vector_store_id}'.")
-        raise ValueError(f"Vector Store instance with id '{col.vector_store_id}' does not exist.")
+        raise ValueError(
+            f"Vector Store instance with id '{col.vector_store_id}' does not exist."
+        )
 
     log.debug("Returning Vector Store client.")
     return VectorStoreConfig(
@@ -61,5 +68,5 @@ async def get_vector_store_settings(
         vs_vendor=vs.vendor,
         vs_base_url=vs.base_url,
         vs_port=vs.port,
-        required_filters=col.required_filters
+        required_filters=col.required_filters,
     )

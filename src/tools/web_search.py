@@ -4,7 +4,6 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from core.config import config
 from core.logging import get_logger
 
-
 log = get_logger()
 
 
@@ -15,11 +14,11 @@ async def get_web_search_tool() -> list[BaseTool]:
     conn = {
         "Web Search": {
             "url": config.WEB_SEARCH_URL,
-            "transport": config.WEB_SEARCH_TRANSPORT
+            "transport": config.WEB_SEARCH_TRANSPORT,
         }
     }
     client = MultiServerMCPClient(connections=conn)
     log.debug("Created MultiServerMCPClient for Web Search")
     tools = await client.get_tools()
-    allowed_firecrawl_tools = {'firecrawl_map', 'firecrawl_scrape', 'firecrawl_crawl'}
+    allowed_firecrawl_tools = {"firecrawl_map", "firecrawl_scrape", "firecrawl_crawl"}
     return [tool for tool in tools if tool.name in allowed_firecrawl_tools]

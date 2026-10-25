@@ -9,26 +9,24 @@ from security.hmac import hash_hmac
 
 log = get_logger()
 
+
 def cache_key_builder(
     func,
     namespace: str = "",
     request: Request = None,
     response: Response = None,
     *args,
-    **kwargs
+    **kwargs,
 ):
 
     key = config.BLIND_INDEX_HMAC_KEY
-    
+
     """Build cache key to store results including hashed api_key, jwt and path.
     Requires request: Request to be included in the main function call.
     Should ONLY be used on non-sensitive GET requests."""
 
     user = kwargs.get("kwargs", {}).get("user")
-    user_id = hash_hmac(
-        content=str(user.id) if user else "Anonymous",
-        key=key
-    )
+    user_id = hash_hmac(content=str(user.id) if user else "Anonymous", key=key)
 
     api_key = hash_hmac(content=request.headers.get("X-API-Key", "Not Set"), key=key)
     path = request.url.path

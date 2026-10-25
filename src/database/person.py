@@ -1,15 +1,15 @@
 import uuid
 from dataclasses import dataclass
-from sqlalchemy.exc import IntegrityError
+
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import config
 from core.logging import get_logger
 from database.schemas.persons_users import PersonsT
-from security.encryption import encrypt, decrypt
+from security.encryption import decrypt, encrypt
 from security.hmac import hash_hmac
-
 
 log = get_logger()
 
@@ -23,14 +23,13 @@ class PersonDetails:
 
 
 async def get_person_by_person_id(
-    session: AsyncSession,
-    person_id: uuid.UUID
+    session: AsyncSession, person_id: uuid.UUID
 ) -> PersonDetails | None:
     """Retrieves a Person's data by searching for their ID."""
 
-    person = (await session.execute(
-        select(PersonsT).where(PersonsT.id == person_id)
-    )).scalar_one_or_none()
+    person = (
+        await session.execute(select(PersonsT).where(PersonsT.id == person_id))
+    ).scalar_one_or_none()
 
     if not person:
         return None
@@ -39,7 +38,7 @@ async def get_person_by_person_id(
         person_id=person.id,
         first_name=decrypt(person.encrypted_first_name),
         last_name=decrypt(person.encrypted_last_name),
-        email=decrypt(person.encrypted_email)
+        email=decrypt(person.encrypted_email),
     )
 
 
@@ -49,12 +48,8 @@ class Person:
 
 
 async def get_or_store_person(
-    session: AsyncSession,
-    first_name: str,
-    last_name: str,
-    email: str
+    session: AsyncSession, first_name: str, last_name: str, email: str
 ) -> Person:
-
     """Stores a new or retrieves an existing person from the database."""
 
     blind_index_email_value = hash_hmac(content=email, key=config.BLIND_INDEX_HMAC_KEY)
@@ -66,14 +61,16 @@ async def get_or_store_person(
     )
 
     if existing:
-        log.info(f"Person already exists, returning existing record: '{existing.id}'...")
+        log.info(
+            f"Person already exists, returning existing record: '{existing.id}'..."
+        )
         return Person(id=existing.id)
 
     person = PersonsT(
         encrypted_email=encrypt(content=email),
         encrypted_first_name=encrypt(content=first_name),
         encrypted_last_name=encrypt(last_name),
-        blind_index_email=blind_index_email_value
+        blind_index_email=blind_index_email_value,
     )
 
     try:

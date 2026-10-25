@@ -1,9 +1,9 @@
 import pytest
+
 from security.hash import get_hash_sha256
 
 
 class TestGetHashSha256:
-
     def test_returns_valid_hex_string(self):
         """Test that hash returns a valid 64-character hex string."""
         result = get_hash_sha256("test")
@@ -96,7 +96,10 @@ class TestGetHashSha256:
         # But we expect ValueError for empty string
 
         # SHA256("test") = 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
-        assert get_hash_sha256("test") == "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        assert (
+            get_hash_sha256("test")
+            == "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        )
 
     def test_single_character_string(self):
         """Test hashing a single character."""
@@ -125,7 +128,7 @@ class TestGetHashSha256:
 
         content = "test message"
         our_hash = get_hash_sha256(content)
-        expected = hashlib.sha256(content.encode('utf-8')).hexdigest()
+        expected = hashlib.sha256(content.encode("utf-8")).hexdigest()
 
         assert our_hash == expected
 

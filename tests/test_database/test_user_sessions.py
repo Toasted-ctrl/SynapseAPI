@@ -1,18 +1,16 @@
 import uuid
 
 import pytest
+from db_helpers import make_session
 
 from database.schemas.user_sessions import SessionsT
 from database.user_sessions import post_session
-from db_helpers import make_session
 from security.hash import get_hash_sha256
-
 
 pytestmark = pytest.mark.asyncio
 
 
 class TestPostSession:
-
     async def test_stores_hash_and_returns_raw_session_id(self):
         user_id = uuid.uuid4()
         session = make_session()

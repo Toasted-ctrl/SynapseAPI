@@ -1,27 +1,31 @@
 import json
 import uuid
 from dataclasses import dataclass
-from fastapi import APIRouter, HTTPException, status, Depends
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-from httpx import ConnectTimeout, ConnectError
+from httpx import ConnectError, ConnectTimeout
 from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.playground.models import AgentModel, AgentTools
-from auth.dep_verify_user import depends_verify_user, VerifiedUser
+from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.config import config
 from core.logging import get_logger
 from core.model_types import model_config
 from database.agent import AgentNotFoundError, get_agent_configuration
 from database.message_threads import verify_or_get_thread_id
-from database.providers import UserProviderRegistry, get_all_provider_configurations, ProviderConfiguration
+from database.providers import (
+    ProviderConfiguration,
+    UserProviderRegistry,
+    get_all_provider_configurations,
+)
 from database.session import get_db_session
-from providers.agent import build_agent_model, stream_agent, run_agent
+from providers.agent import build_agent_model, run_agent, stream_agent
 from tools.get_tools import get_agent_tools
 
 from .models import ConversationCreate, ConversationRead
-
 
 router = APIRouter()
 
@@ -48,33 +52,22 @@ class _ConversationSettings:
 
 
 async def _resolve_settings(
-    payload: ConversationCreate,
-    session: AsyncSession,
-    user_id: uuid.UUID
+    payload: ConversationCreate, session: AsyncSession, user_id: uuid.UUID
 ) -> _ConversationSettings:
     """Returns the stored Agent's settings if agent_id is given, otherwise the inline ones.
     Only stored Agents have a system prompt."""
     if payload.agent_id:
         try:
             agent = await get_agent_configuration(
-                session=session,
-                user_id=user_id,
-                agent_id=payload.agent_id
+                session=session, user_id=user_id, agent_id=payload.agent_id
             )
         except AgentNotFoundError as e:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
         return _ConversationSettings(
-            model=agent.model,
-            system_prompt=agent.system_prompt,
-            tools=agent.tools
+            model=agent.model, system_prompt=agent.system_prompt, tools=agent.tools
         )
     return _ConversationSettings(
-        model=payload.model,
-        system_prompt=None,
-        tools=payload.tools or AgentTools()
+        model=payload.model, system_prompt=None, tools=payload.tools or AgentTools()
     )
 
 
@@ -85,43 +78,38 @@ async def _resolve_settings(
     description=(
         "Invokes a non-streaming response from an agent (by agent_id), or a "
         "response from a model if an agent_id is not provided."
-    )
+    ),
 )
 async def conversation(
     payload: ConversationCreate,
     user: VerifiedUser = Depends(depends_verify_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ) -> ConversationRead:
     try:
         settings: _ConversationSettings = await _resolve_settings(
-            payload=payload,
-            session=session,
-            user_id=user.id
+            payload=payload, session=session, user_id=user.id
         )
 
         if settings.model.name not in await model_config.chat_completion_models():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Model not supported by Provider"
+                detail="Model not supported by Provider",
             )
-        
+
         pr: UserProviderRegistry = await get_all_provider_configurations(
-            session=session,
-            user_id=user.id
+            session=session, user_id=user.id
         )
 
         if settings.model.provider in pr.not_configured:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Provider {settings.model.provider} not configured"
+                detail=f"Provider {settings.model.provider} not configured",
             )
 
         prov: ProviderConfiguration = getattr(pr, settings.model.provider)
 
         thread_id: uuid.UUID = await verify_or_get_thread_id(
-            session=session,
-            user_id=user.id,
-            thread_id=payload.thread_id
+            session=session, user_id=user.id, thread_id=payload.thread_id
         )
 
         tools = await get_agent_tools(
@@ -132,7 +120,7 @@ async def conversation(
             user_vs_memories=settings.tools.user_vs_memories,
             user_vs_skills=settings.tools.user_vs_skills,
             user_id=user.id,
-            pr=pr
+            pr=pr,
         )
 
         async with AsyncPostgresSaver.from_conn_string(
@@ -152,21 +140,18 @@ async def conversation(
             )
 
             result = await run_agent(
-                agent=agent,
-                prompt=payload.prompt,
-                thread_id=thread_id,
-                user_id=user.id
+                agent=agent, prompt=payload.prompt, thread_id=thread_id, user_id=user.id
             )
 
         return {
             "thread_id": thread_id,
-            "messages": [_serialize_event(m) for m in result['messages']]
+            "messages": [_serialize_event(m) for m in result["messages"]],
         }
 
-    except (ConnectTimeout, ConnectError):
+    except ConnectTimeout, ConnectError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Unable to connect to Provider"
+            detail="Unable to connect to Provider",
         )
 
 
@@ -177,43 +162,38 @@ async def conversation(
     description=(
         "Invokes a streaming response from an agent (by agent_id), or a "
         "streaming response from a model if an agent_id is not provided."
-    )
+    ),
 )
 async def conversation_stream(
     payload: ConversationCreate,
     user: VerifiedUser = Depends(depends_verify_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ) -> StreamingResponse:
     try:
         settings: _ConversationSettings = await _resolve_settings(
-            payload=payload,
-            session=session,
-            user_id=user.id
+            payload=payload, session=session, user_id=user.id
         )
 
         if settings.model.name not in await model_config.chat_completion_models():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Model not supported by Provider"
+                detail="Model not supported by Provider",
             )
 
         pr: UserProviderRegistry = await get_all_provider_configurations(
-            session=session,
-            user_id=user.id
-            )
-        
+            session=session, user_id=user.id
+        )
+
         if settings.model.provider in pr.not_configured:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Provider {settings.model.provider} not configured"
+                detail=f"Provider {settings.model.provider} not configured",
             )
-        
+
         prov: ProviderConfiguration = getattr(pr, settings.model.provider)
 
         thread_id: uuid.UUID = await verify_or_get_thread_id(
-            session=session,
-            user_id=user.id,
-            thread_id=payload.thread_id
+            session=session, user_id=user.id, thread_id=payload.thread_id
         )
 
         tools = await get_agent_tools(
@@ -224,7 +204,7 @@ async def conversation_stream(
             user_vs_memories=settings.tools.user_vs_memories,
             user_vs_skills=settings.tools.user_vs_skills,
             user_id=user.id,
-            pr=pr
+            pr=pr,
         )
 
         async def event_stream(thread_id: uuid.UUID):
@@ -234,7 +214,6 @@ async def conversation_stream(
                 async with AsyncPostgresSaver.from_conn_string(
                     conn_string=config.PG_CHECKPOINTER_URL
                 ) as checkpointer:
-
                     agent = build_agent_model(
                         langchain_con=prov.langchain_con,
                         model=settings.model.name,
@@ -252,26 +231,32 @@ async def conversation_stream(
                         agent=agent,
                         prompt=payload.prompt,
                         thread_id=thread_id,
-                        user_id=user.id
+                        user_id=user.id,
                     ):
                         yield f"data: {json.dumps(_serialize_event(event=event))}\n\n"
 
-            except (ConnectTimeout, ConnectError):
-                error = {"type": "error", "data": {"detail": "Unable to connect to Provider"}}
+            except ConnectTimeout, ConnectError:
+                error = {
+                    "type": "error",
+                    "data": {"detail": "Unable to connect to Provider"},
+                }
                 yield f"data: {json.dumps(error)}\n\n"
             except Exception as e:
                 log.exception(e)
-                error = {"type": "error", "data": {"detail": "Agent run failed unexpectedly"}}
+                error = {
+                    "type": "error",
+                    "data": {"detail": "Agent run failed unexpectedly"},
+                }
                 yield f"data: {json.dumps(error)}\n\n"
 
         return StreamingResponse(
             event_stream(thread_id=thread_id),
             media_type="text/event-stream",
-            headers={"X-Thread-ID": str(thread_id)}
+            headers={"X-Thread-ID": str(thread_id)},
         )
 
-    except (ConnectTimeout, ConnectError):
+    except ConnectTimeout, ConnectError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Unable to connect to Provider"
+            detail="Unable to connect to Provider",
         )

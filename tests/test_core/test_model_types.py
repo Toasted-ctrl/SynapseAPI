@@ -6,7 +6,6 @@ from cachetools import TTLCache
 
 from core.model_types import ModelConfig
 
-
 pytestmark = pytest.mark.asyncio
 
 MODELS = {
@@ -25,7 +24,9 @@ def db(monkeypatch):
     async def fake_ctx():
         yield session
 
-    get_models = AsyncMock(side_effect=lambda session, expertise: list(MODELS[expertise]))
+    get_models = AsyncMock(
+        side_effect=lambda session, expertise: list(MODELS[expertise])
+    )
     monkeypatch.setattr("core.model_types.get_db_session_ctx", fake_ctx)
     monkeypatch.setattr("core.model_types.get_models_by_expertise", get_models)
     return session, get_models
@@ -40,12 +41,14 @@ class FakeClock:
 
 
 class TestModelConfig:
-
-    @pytest.mark.parametrize("method, expertise", [
-        ("chat_completion_models", "chat_completion"),
-        ("vector_embedding_models", "vector_embedding"),
-        ("translation_models", "translation"),
-    ])
+    @pytest.mark.parametrize(
+        "method, expertise",
+        [
+            ("chat_completion_models", "chat_completion"),
+            ("vector_embedding_models", "vector_embedding"),
+            ("translation_models", "translation"),
+        ],
+    )
     async def test_returns_models_for_expertise(self, db, method, expertise):
         session, get_models = db
 
@@ -73,7 +76,10 @@ class TestModelConfig:
         await mc.chat_completion_models()
         await mc.translation_models()
 
-        assert [c.kwargs["expertise"] for c in get_models.await_args_list] == ["chat_completion", "translation"]
+        assert [c.kwargs["expertise"] for c in get_models.await_args_list] == [
+            "chat_completion",
+            "translation",
+        ]
 
     async def test_refetches_after_ttl_expires(self, db):
         _, get_models = db

@@ -1,9 +1,9 @@
 import importlib
 import pkgutil
+
 from fastapi import APIRouter, FastAPI
 
 from core.logging import get_logger
-
 
 log = get_logger()
 
@@ -14,7 +14,9 @@ def include_routers(app: FastAPI) -> None:
     The URL prefix is taken from the version package, e.g. `api.v1.auth.me` -> `/api/v1`.
     A module can opt out by setting `ENABLED = False`."""
 
-    for module_info in sorted(pkgutil.walk_packages(__path__, prefix=f"{__name__}."), key=lambda m: m.name):
+    for module_info in sorted(
+        pkgutil.walk_packages(__path__, prefix=f"{__name__}."), key=lambda m: m.name
+    ):
         if module_info.ispkg:
             continue
 

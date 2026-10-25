@@ -6,7 +6,6 @@ from core.logging import get_logger
 from providers.dataclasses import LangChainCon
 from security.encryption import decrypt
 
-
 log = get_logger()
 
 
@@ -15,15 +14,11 @@ def _build_embedding_model(
     model: str,
     base_url: str,
     dimensions: int | None = None,
-    encrypted_api_key: str | None = None
+    encrypted_api_key: str | None = None,
 ) -> OllamaEmbeddings | OpenAIEmbeddings:
     """Embedding model factory."""
 
-    common_kwargs = {
-        "model": model,
-        "base_url": base_url,
-        "dimensions": dimensions
-    }
+    common_kwargs = {"model": model, "base_url": base_url, "dimensions": dimensions}
 
     match langchain_con:
         case LangChainCon.OLLAMA:
@@ -40,11 +35,15 @@ def _build_embedding_model(
             return OpenAIEmbeddings(
                 **common_kwargs,
                 api_key=decrypt(encrypted_api_key),
-                check_embedding_ctx_length=not any(x in base_url.lower() for x in ("melious", "mistral"))
+                check_embedding_ctx_length=not any(
+                    x in base_url.lower() for x in ("melious", "mistral")
+                ),
             )
 
         case _:
-            raise NotImplementedError(f"Embedding not supported for '{langchain_con}' ...")
+            raise NotImplementedError(
+                f"Embedding not supported for '{langchain_con}' ..."
+            )
 
 
 async def get_embedding(
@@ -53,7 +52,7 @@ async def get_embedding(
     prompt: str,
     base_url: str,
     dimensions: int | None = None,
-    encrypted_api_key: str | None = None
+    encrypted_api_key: str | None = None,
 ) -> list[float]:
     """Retrieve embedding from indicated Provider with specified Embedding model."""
 
@@ -69,7 +68,7 @@ async def get_embedding(
         model=model,
         base_url=base_url,
         dimensions=dimensions,
-        encrypted_api_key=encrypted_api_key
+        encrypted_api_key=encrypted_api_key,
     )
 
     log.debug("Embedding Model constructed, generating embedding ...")

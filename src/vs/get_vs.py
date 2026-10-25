@@ -1,4 +1,5 @@
 from enum import Enum
+
 from langchain_qdrant import QdrantVectorStore
 
 from core.logging import get_logger
@@ -10,7 +11,7 @@ log = get_logger()
 
 
 class VectorStore(str, Enum):
-    QDRANT = 'qdrant'
+    QDRANT = "qdrant"
 
 
 def get_vector_store(
@@ -39,14 +40,15 @@ def get_vector_store(
         case VectorStore.QDRANT:
             log.debug(
                 f"Building Qdrant Vector Store client for collection name '{vs_collection_name}' ... "
-                f"Connecting to Qdrant at URL '{vs_base_url}' ...")
+                f"Connecting to Qdrant at URL '{vs_base_url}' ..."
+            )
 
             return QdrantVectorStore.from_existing_collection(
                 collection_name=vs_collection_name,
                 url=vs_base_url,
                 embedding=emb,
                 port=vs_port,
-                api_key=decrypt(vs_encrypted_api_key) if vs_encrypted_api_key else None
+                api_key=decrypt(vs_encrypted_api_key) if vs_encrypted_api_key else None,
             )
 
         # TODO: Add support for additional Vector Store vendors.
