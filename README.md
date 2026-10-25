@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-23.
+> This document was last reviewed on 2026-10-25.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -139,12 +139,16 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 - [ ] Add encryption for checkpointer blob storage.
 
 ## Contributing
-PRs are welcome! Before opening one, please make sure the tests pass:
+PRs are welcome! Before opening one, please make sure the tests pass and the code is linted and formatted with [ruff](https://docs.astral.sh/ruff/):
 
 ```bash
 uv sync --group dev
 uv run pytest
+uv run ruff check --fix .   # lint and auto-fix what it can
+uv run ruff format .        # format code
 ```
+
+Ruff is configured in `pyproject.toml`. Please fix any remaining `ruff check` errors by hand before opening the PR.
 
 For security issues, please see [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
