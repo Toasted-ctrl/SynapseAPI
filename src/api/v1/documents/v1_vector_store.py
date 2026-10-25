@@ -25,15 +25,12 @@ from .models import (
 router = APIRouter()
 
 
-tags = ["Vector Store / Embedding"]
-
-
 log = get_logger()
 
 
 @router.post(
     path="/vector_store/add",
-    tags=tags,
+    tags=["Vector Store / Embedding"],
     description="Store (a) document(s) in the specified Vector Store based on scope.",
     response_model=VectorStoreDocumentsRead,
 )
@@ -112,7 +109,7 @@ async def store_semantic_document(
 
 @router.post(
     path="/vector_store/search",
-    tags=tags,
+    tags=["Vector Store / Embedding"],
     description="Search (a) document(s) in the specified Vector Store scope.",
 )
 async def search_document(
