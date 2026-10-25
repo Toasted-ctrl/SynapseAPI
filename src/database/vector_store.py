@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.logging import get_logger
 from database.schemas.vector_store import VectorStoreSettingsT
 from database.schemas.vector_store_collections import VectorStoreCollectionT
+from vs.get_vs import VectorStore
 
 log = get_logger()
 
@@ -14,7 +15,7 @@ log = get_logger()
 class VectorStoreConfig:
     vs_collection_name: str
     vs_encrypted_api_key: str
-    vs_vendor: str
+    vs_vendor: VectorStore
     vs_base_url: str
     vs_port: int
     e_dimensions: int
@@ -65,7 +66,7 @@ async def get_vector_store_settings(
         e_api_key=col.e_api_key,
         vs_encrypted_api_key=vs.encrypted_api_key,
         scope=col.scope,
-        vs_vendor=vs.vendor,
+        vs_vendor=VectorStore(vs.vendor),
         vs_base_url=vs.base_url,
         vs_port=vs.port,
         required_filters=col.required_filters,
