@@ -143,10 +143,10 @@ async def conversation(
                 agent=agent, prompt=payload.prompt, thread_id=thread_id, user_id=user.id
             )
 
-        return {
-            "thread_id": thread_id,
-            "messages": [_serialize_event(m) for m in result["messages"]],
-        }
+        return ConversationRead(
+            thread_id=thread_id,
+            messages=[_serialize_event(m) for m in result["messages"]],
+        )
 
     except (ConnectTimeout, ConnectError):
         raise HTTPException(
