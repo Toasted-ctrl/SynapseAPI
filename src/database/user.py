@@ -45,7 +45,7 @@ async def get_or_store_user(
     external_id: str | None = None,
 ) -> User:
 
-    if key_type == "Application" and external_id == None:
+    if key_type == "Application" and external_id is None:
         raise ValueError(
             "Unable to fetch or add User, if key_type = 'Application', external_id must not be None"
         )

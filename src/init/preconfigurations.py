@@ -37,7 +37,7 @@ async def create_preconfigured_providers() -> None:
     with open(file_path, "r", encoding="utf-8") as file:
         data = json.load(file)
 
-    if data.get("configured", False) == False:
+    if not data.get("configured", False):
         log.error(
             "ENV: CREATE_PRECONFIGURED_PROVIDERS is enabled, but 'configure_init_providers.json' appears misconfigured. Shutting down..."
         )

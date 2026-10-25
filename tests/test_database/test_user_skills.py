@@ -217,7 +217,7 @@ class TestGetUserSkillBySkillId:
         skill_id = uuid.uuid4()
 
         # Create mock skill belonging to a different user
-        mock_skill = row(
+        row(
             id=skill_id,
             user_id=other_user_id,  # Different user
             name="other_user_skill",
@@ -343,7 +343,7 @@ class TestGetUserSkillBySkillId:
 
             session = make_session()
 
-            result = await post_user_skill(
+            await post_user_skill(
                 session=session,
                 user_id=user_id,
                 name="test_skill",
@@ -509,7 +509,7 @@ class TestUpdateUserSkillBySkillId:
         skill_id = uuid.uuid4()
 
         # Create mock skill belonging to a different user
-        mock_skill = row(
+        row(
             id=skill_id,
             user_id=other_user_id,  # Different user
             name="other_user_skill",

@@ -44,7 +44,7 @@ async def store_semantic_document(
     session: AsyncSession = Depends(get_db_session),
 ) -> VectorStoreDocumentsRead:
 
-    if not scope in ["user_vs_files", "user_vs_memories"]:
+    if scope not in ["user_vs_files", "user_vs_memories"]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown scope: {scope}"
         )

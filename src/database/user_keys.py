@@ -95,7 +95,7 @@ async def get_or_store_key(
         await session.scalar(
             select(func.count())
             .select_from(ProvidersT)
-            .where(ProvidersT.id == provider_id, ProvidersT.requires_api_key == True)
+            .where(ProvidersT.id == provider_id, ProvidersT.requires_api_key)
         )
         != 1
     ):

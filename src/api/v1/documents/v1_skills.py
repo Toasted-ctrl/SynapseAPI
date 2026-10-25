@@ -42,7 +42,7 @@ async def create_skill(
     in the Vector Store for semantic search capabilities. New skills are encrypted by default.
     """
     # TODO: In prep for upcoming skills (for Agents, etc.)
-    if not scope in ["user_vs_skills"]:
+    if scope not in ["user_vs_skills"]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Unsupported scope: {scope}"
         )

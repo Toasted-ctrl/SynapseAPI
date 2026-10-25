@@ -112,7 +112,7 @@ class TestGetOrStoreKey:
 
         provider_check = session.scalar.await_args_list[1]
         assert params(provider_check) == [provider_id]
-        assert "providers.requires_api_key = true" in str(provider_check.args[0])
+        assert "AND providers.requires_api_key" in str(provider_check.args[0])
 
     async def test_rejects_provider_without_key_requirement(self):
         provider_id = uuid.uuid4()

@@ -1,5 +1,3 @@
-print("\n>>> STARTING INITIALiZATION PROCESS\n")
-
 import asyncio
 
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -38,6 +36,9 @@ CREATE_PRECONFIGURED_MCPS = True
 CREATE_PRECONFIGURED_MODEL_SAMPLING = True
 
 log = get_logger()
+
+
+print("\n>>> STARTING INITIALiZATION PROCESS\n")
 
 
 async def main() -> None:
