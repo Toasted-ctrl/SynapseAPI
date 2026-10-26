@@ -1,6 +1,5 @@
 import json
 import uuid
-from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -9,11 +8,10 @@ from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.playground.models import AgentModel, AgentTools
+from api.v1.playground.models import AgentTools
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.config import config
 from core.logging import get_logger
-from core.model_types import model_config
 from database.agent import AgentNotFoundError, get_agent_configuration
 from database.message_threads import verify_or_get_thread_id
 from database.providers import (
@@ -25,6 +23,7 @@ from database.session import get_db_session
 from providers.agent import build_agent_model, run_agent, stream_agent
 from tools.get_tools import get_agent_tools
 
+from .helpers import ConversationSettings, ModelType, get_provider_configuration
 from .models import ConversationCreate, ConversationRead
 
 router = APIRouter()
@@ -44,16 +43,9 @@ def _serialize_event(event):
     return event
 
 
-@dataclass(frozen=True)
-class _ConversationSettings:
-    model: AgentModel
-    system_prompt: str | None
-    tools: AgentTools
-
-
 async def _resolve_settings(
     payload: ConversationCreate, session: AsyncSession, user_id: uuid.UUID
-) -> _ConversationSettings:
+) -> ConversationSettings:
     """Returns the stored Agent's settings if agent_id is given, otherwise the inline ones.
     Only stored Agents have a system prompt."""
     if payload.agent_id:
@@ -63,10 +55,10 @@ async def _resolve_settings(
             )
         except AgentNotFoundError as e:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-        return _ConversationSettings(
+        return ConversationSettings(
             model=agent.model, system_prompt=agent.system_prompt, tools=agent.tools
         )
-    return _ConversationSettings(
+    return ConversationSettings(
         model=payload.model, system_prompt=None, tools=payload.tools or AgentTools()
     )
 
@@ -86,27 +78,19 @@ async def conversation(
     session: AsyncSession = Depends(get_db_session),
 ) -> ConversationRead:
     try:
-        settings: _ConversationSettings = await _resolve_settings(
+        settings: ConversationSettings = await _resolve_settings(
             payload=payload, session=session, user_id=user.id
         )
 
-        if settings.model.name not in await model_config.chat_completion_models():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Model not supported by Provider",
-            )
-
-        pr: UserProviderRegistry = await get_all_provider_configurations(
+        upr: UserProviderRegistry = await get_all_provider_configurations(
             session=session, user_id=user.id
         )
 
-        if settings.model.provider in pr.not_configured:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Provider {settings.model.provider} not configured",
-            )
-
-        prov: ProviderConfiguration = getattr(pr, settings.model.provider)
+        prov: ProviderConfiguration = await get_provider_configuration(
+            user_provider_registry=upr,
+            settings=settings,
+            model_type=ModelType.CHAT_COMPLETION,
+        )
 
         thread_id: uuid.UUID = await verify_or_get_thread_id(
             session=session, user_id=user.id, thread_id=payload.thread_id
@@ -120,7 +104,7 @@ async def conversation(
             user_vs_memories=settings.tools.user_vs_memories,
             user_vs_skills=settings.tools.user_vs_skills,
             user_id=user.id,
-            pr=pr,
+            pr=upr,
         )
 
         async with AsyncPostgresSaver.from_conn_string(
@@ -148,7 +132,7 @@ async def conversation(
             messages=[_serialize_event(m) for m in result["messages"]],
         )
 
-    except (ConnectTimeout, ConnectError):
+    except ConnectTimeout, ConnectError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to connect to Provider",
@@ -170,27 +154,19 @@ async def conversation_stream(
     session: AsyncSession = Depends(get_db_session),
 ) -> StreamingResponse:
     try:
-        settings: _ConversationSettings = await _resolve_settings(
+        settings: ConversationSettings = await _resolve_settings(
             payload=payload, session=session, user_id=user.id
         )
 
-        if settings.model.name not in await model_config.chat_completion_models():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Model not supported by Provider",
-            )
-
-        pr: UserProviderRegistry = await get_all_provider_configurations(
+        upr: UserProviderRegistry = await get_all_provider_configurations(
             session=session, user_id=user.id
         )
 
-        if settings.model.provider in pr.not_configured:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Provider {settings.model.provider} not configured",
-            )
-
-        prov: ProviderConfiguration = getattr(pr, settings.model.provider)
+        prov: ProviderConfiguration = await get_provider_configuration(
+            user_provider_registry=upr,
+            settings=settings,
+            model_type=ModelType.CHAT_COMPLETION,
+        )
 
         thread_id: uuid.UUID = await verify_or_get_thread_id(
             session=session, user_id=user.id, thread_id=payload.thread_id
@@ -204,7 +180,7 @@ async def conversation_stream(
             user_vs_memories=settings.tools.user_vs_memories,
             user_vs_skills=settings.tools.user_vs_skills,
             user_id=user.id,
-            pr=pr,
+            pr=upr,
         )
 
         async def event_stream(thread_id: uuid.UUID):
@@ -235,7 +211,7 @@ async def conversation_stream(
                     ):
                         yield f"data: {json.dumps(_serialize_event(event=event))}\n\n"
 
-            except (ConnectTimeout, ConnectError):
+            except ConnectTimeout, ConnectError:
                 error = {
                     "type": "error",
                     "data": {"detail": "Unable to connect to Provider"},
@@ -255,7 +231,7 @@ async def conversation_stream(
             headers={"X-Thread-ID": str(thread_id)},
         )
 
-    except (ConnectTimeout, ConnectError):
+    except ConnectTimeout, ConnectError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to connect to Provider",
