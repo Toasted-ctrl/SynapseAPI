@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.logging import get_logger
 from database.schemas.providers import ProvidersT
 from database.user_keys import get_user_active_keys
+from providers.dataclasses import LangChainCon
 
 log = get_logger()
 
@@ -20,7 +21,7 @@ class Provider:
     base_url: str
     internal: bool
     requires_api_key: bool
-    langchain_con: str
+    langchain_con: LangChainCon
     api_key_configured: bool | None = None
     mac_address: str | None = None
 
@@ -30,7 +31,7 @@ class ProviderConfiguration:
     id: uuid.UUID
     name: str
     base_url: str
-    langchain_con: str
+    langchain_con: LangChainCon
     api_key_configured: bool
     internal: bool
     requires_api_key: bool = True
@@ -107,7 +108,7 @@ async def get_or_create_provider(
             base_url=existing.base_url,
             internal=existing.internal,
             requires_api_key=existing.requires_api_key,
-            langchain_con=existing.langchain_con,
+            langchain_con=LangChainCon(existing.langchain_con),
         )
 
     log.info("Creating new Provider...")
@@ -135,7 +136,7 @@ async def get_or_create_provider(
         base_url=new_provider.base_url,
         internal=new_provider.internal,
         requires_api_key=new_provider.requires_api_key,
-        langchain_con=new_provider.langchain_con,
+        langchain_con=LangChainCon(new_provider.langchain_con),
         mac_address=new_provider.mac_address,
     )
 
@@ -163,7 +164,7 @@ async def get_all_provider_configurations(
             id=p.id,
             base_url=p.base_url,
             name=p.name,
-            langchain_con=p.langchain_con,
+            langchain_con=LangChainCon(p.langchain_con),
             encrypted_api_key=next(
                 (k.api_key for k in keys if k.provider_id == p.id), None
             ),
@@ -212,7 +213,7 @@ async def get_providers_by_location(
             id=p.id,
             base_url=p.base_url,
             name=p.name,
-            langchain_con=p.langchain_con,
+            langchain_con=LangChainCon(p.langchain_con),
             internal=p.internal,
             requires_api_key=p.requires_api_key,
         )
@@ -238,7 +239,7 @@ async def get_providers_by_id(
             id=p.id,
             base_url=p.base_url,
             name=p.name,
-            langchain_con=p.langchain_con,
+            langchain_con=LangChainCon(p.langchain_con),
             internal=p.internal,
             requires_api_key=p.requires_api_key,
         )

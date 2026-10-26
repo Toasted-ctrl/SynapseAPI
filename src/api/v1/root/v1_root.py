@@ -4,7 +4,7 @@ from fastapi_cache.decorator import cache
 from core.cache import cache_key_builder
 from core.config import config
 
-from .models import RootRead
+from .models import Contact, RootRead
 
 router = APIRouter()
 
@@ -16,10 +16,10 @@ router = APIRouter()
     tags=["Root"],
 )
 @cache(expire=300, key_builder=cache_key_builder)
-def get_root(request: Request, response: Response) -> RootRead:
+async def get_root(request: Request, response: Response) -> RootRead:
 
-    return {
-        "application_name": config.APP_NAME,
-        "version": config.APP_VERSION,
-        "contact": {"maintainer": config.APP_MAINTAINER},
-    }
+    return RootRead(
+        application_name=config.APP_NAME,
+        version=config.APP_VERSION,
+        contact=Contact(maintainer=config.APP_MAINTAINER),
+    )

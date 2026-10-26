@@ -1,14 +1,13 @@
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from enum import Enum
 
 from fastapi import Cookie, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.dep_verify_client import VerifiedClient, depends_get_client
+from auth.dep_verify_client import KeyType, VerifiedClient, depends_get_client
 from core.logging import get_logger
 from database.schemas.persons_users import UsersT
 from database.schemas.user_sessions import SessionsT
@@ -16,11 +15,6 @@ from database.session import get_db_session
 from security.hash import get_hash_sha256
 
 log = get_logger()
-
-
-class KeyType(str, Enum):
-    APPLICATION = "Application"
-    USER = "User"
 
 
 @dataclass(frozen=True)
@@ -36,9 +30,7 @@ async def depends_verify_user(
     """Resolved a VerifiedClient to a VerifiedUser.
     Returns VerifiedUser if valid, otherwise raises HTTPException."""
 
-    kt: KeyType = client.key_type
-
-    match kt:
+    match client.key_type:
         case KeyType.APPLICATION:
             if not session_id:
                 raise HTTPException(
@@ -46,7 +38,7 @@ async def depends_verify_user(
                     detail="Missing session cookie",
                 )
 
-            user = (
+            user_session = (
                 await session.execute(
                     select(SessionsT).where(
                         SessionsT.session_id_hash == get_hash_sha256(session_id),
@@ -55,7 +47,7 @@ async def depends_verify_user(
                 )
             ).scalar_one_or_none()
 
-            if user is None:
+            if user_session is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid or expired session",
@@ -64,7 +56,8 @@ async def depends_verify_user(
             client_id_check = (
                 await session.execute(
                     select(UsersT).where(
-                        UsersT.api_key_id == client.id, UsersT.id == user.user_id
+                        UsersT.api_key_id == client.id,
+                        UsersT.id == user_session.user_id,
                     )
                 )
             ).scalar_one_or_none()
@@ -75,8 +68,8 @@ async def depends_verify_user(
                     detail="User is not authorized",
                 )
 
-            log.debug(f"Verified User: {user.user_id}")
-            return VerifiedUser(id=user.user_id)
+            log.debug(f"Verified User: {user_session.user_id}")
+            return VerifiedUser(id=user_session.user_id)
 
         case KeyType.USER:
             try:
@@ -90,6 +83,12 @@ async def depends_verify_user(
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Unexpected error. Please contact your administrator.",
+                )
+
+            if user is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="User is not authorized",
                 )
 
             log.debug(f"Verified User: {user.id}")

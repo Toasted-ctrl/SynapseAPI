@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from enum import Enum
 
 from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import APIKeyHeader
@@ -17,10 +18,15 @@ log = get_logger()
 api_key_header = APIKeyHeader(name="X-API-Key")
 
 
+class KeyType(str, Enum):
+    APPLICATION = "Application"
+    USER = "User"
+
+
 @dataclass(frozen=True)
 class VerifiedClient:
     id: uuid.UUID
-    key_type: str
+    key_type: KeyType
 
 
 async def depends_get_client(
@@ -61,7 +67,7 @@ async def depends_get_client(
         )
 
     log.debug(f"Verified Client: {client.id}")
-    return VerifiedClient(id=client.id, key_type=client.key_type)
+    return VerifiedClient(id=client.id, key_type=KeyType(client.key_type))
 
 
 def depends_get_application_client(
@@ -70,7 +76,7 @@ def depends_get_application_client(
     """Verifying if the client is a frontend application client.
     Returns VerifiedClient dataclass, otherwise raises HTTPException."""
 
-    if client.key_type != "Application":
+    if client.key_type != KeyType.APPLICATION:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Client must be a frontend application, with a login requirement.",
@@ -87,7 +93,7 @@ async def verify_client_from_application_id(
         await session.execute(
             select(ClientsT).where(
                 ClientsT.api_key_hash == get_hash_sha256(application_id),
-                ClientsT.key_type == "Application",
+                ClientsT.key_type == KeyType.APPLICATION,
             )
         )
     ).scalar_one_or_none()
@@ -95,4 +101,4 @@ async def verify_client_from_application_id(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Client ID"
         )
-    return VerifiedClient(id=query.id, key_type=query.key_type)
+    return VerifiedClient(id=query.id, key_type=KeyType(query.key_type))

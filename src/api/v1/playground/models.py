@@ -42,12 +42,8 @@ class AgentModel(BaseModel):
         str, Field(min_length=1, description="Provider-specific model name.")
     ]
     parameters: Annotated[
-        AgentModelParameters,
-        Field(
-            default_factory=AgentModelParameters,
-            description="Sampling parameters for the model.",
-        ),
-    ]
+        AgentModelParameters, Field(description="Sampling parameters for the model.")
+    ] = Field(default_factory=AgentModelParameters)
 
 
 class AgentTools(BaseModel):
@@ -55,11 +51,8 @@ class AgentTools(BaseModel):
 
     mcp_ids: Annotated[
         list[UUID],
-        Field(
-            default_factory=list,
-            description="List of MCP servers that Agent is allowed to use.",
-        ),
-    ]
+        Field(description="List of MCP servers that Agent is allowed to use."),
+    ] = Field(default_factory=list)
     web_search: Annotated[
         bool, Field(description="Allows the Agent to search the web.")
     ] = False
@@ -87,11 +80,8 @@ class AgentConfigurationBase(BaseModel):
         str | None, Field(description="System prompt given to the Agent.")
     ] = None
     tools: Annotated[
-        AgentTools,
-        Field(
-            default_factory=AgentTools, description="Tools the Agent is allowed to use."
-        ),
-    ]
+        AgentTools, Field(description="Tools the Agent is allowed to use.")
+    ] = Field(default_factory=AgentTools)
 
 
 class AgentConfigurationCreate(AgentConfigurationBase):
