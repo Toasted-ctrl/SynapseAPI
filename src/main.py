@@ -60,17 +60,12 @@ app.add_middleware(
 async def secure_logging(request: Request, call_next):
     response = await call_next(request)
 
+    host = request.client.host if request.client else "unknown"
     path = request.url.path
     if "/auth/" in path or "/callback" in path:
-        log.info(
-            f'{request.client.host} - "{request.method} {path}" {response.status_code}'
-        )
+        log.info(f'{host} - "{request.method} {path}" {response.status_code}')
     else:
-        log.info(
-            f"{request.client.host} - "
-            f'"{request.method} {request.url}" '
-            f"{response.status_code}"
-        )
+        log.info(f'{host} - "{request.method} {request.url}" {response.status_code}')
 
     return response
 
