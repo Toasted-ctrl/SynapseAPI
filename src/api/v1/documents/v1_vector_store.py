@@ -13,7 +13,7 @@ from database.providers import (
 from database.session import get_db_session
 from database.vector_store import VectorStoreConfig, get_vector_store_settings
 from vs.get_vs import get_vector_store
-from vs.save_docs import save_docs
+from vs.save_docs import VectorStoreScope, save_docs
 from vs.search import search_docs_similarity
 
 from .models import (
@@ -41,7 +41,7 @@ async def store_semantic_document(
     session: AsyncSession = Depends(get_db_session),
 ) -> VectorStoreDocumentsRead:
 
-    if scope not in ["user_vs_files", "user_vs_memories"]:
+    if scope not in (VectorStoreScope.USER_FILES, VectorStoreScope.USER_MEMORIES):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown scope: {scope}"
         )
@@ -98,7 +98,7 @@ async def store_semantic_document(
     doc_ids = await run_in_threadpool(
         save_docs,
         vector_store=vs,
-        scope=scope,
+        scope=VectorStoreScope(scope),
         texts=payload.texts,
         metadatas=metadatas,
         required_metadata=vscf.required_filters,
@@ -138,7 +138,7 @@ async def search_document(
         vs_encrypted_api_key=vscf.vs_encrypted_api_key,
         e_model=vscf.e_model,
         e_base_url=prov.base_url,
-        e_encrypted_api_key=prov.encrypted_api_key,
+        e_encrypted_api_key=vscf.e_api_key,
         e_langchain_con=prov.langchain_con,
         e_dimensions=vscf.e_dimensions,
     )
