@@ -1,8 +1,8 @@
 from langchain_ollama import OllamaEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
-from core.config import config
 from core.logging import get_logger
+from core.model_types import model_config
 from providers.dataclasses import LangChainCon
 from security.encryption import decrypt
 
@@ -26,6 +26,8 @@ def _build_embedding_model(
             return OllamaEmbeddings(**common_kwargs)
 
         case LangChainCon.OPENAI:
+            if encrypted_api_key is None:
+                raise ValueError("encrypted_api_key is required for OpenAIEmbeddings")
             log.debug(f"Requesting OpenAI embedding model '{model}' ...")
 
             # Mistral's embeddings endpoint rejects the OpenAI 'dimensions' param.
@@ -34,7 +36,7 @@ def _build_embedding_model(
 
             return OpenAIEmbeddings(
                 **common_kwargs,
-                api_key=decrypt(encrypted_api_key),
+                openai_api_key=decrypt(encrypted_api_key),
                 check_embedding_ctx_length=not any(
                     x in base_url.lower() for x in ("melious", "mistral")
                 ),
@@ -60,7 +62,7 @@ async def get_embedding(
     # Figure out some way to block if an embedding model is requested from a Provider
     # that does not support it.
 
-    if model not in config.VECTOR_EMBEDDING_MODELS:
+    if model not in await model_config.vector_embedding_models():
         raise ValueError(f"'{model}' is not recognized as embedding model ...")
 
     embedding = _build_embedding_model(

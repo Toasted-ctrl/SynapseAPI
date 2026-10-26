@@ -65,7 +65,7 @@ class TestBuildEmbeddingModel:
                 model="text-embedding-3-small",
                 base_url="https://api.openai.com/v1",
                 dimensions=None,
-                api_key="test-api-key",
+                openai_api_key="test-api-key",
                 check_embedding_ctx_length=True,
             )
             assert result == mock_instance
@@ -88,7 +88,7 @@ class TestBuildEmbeddingModel:
             mock_openai.assert_called_once_with(
                 model="text-embedding-3-large",
                 base_url="https://api.openai.com/v1",
-                api_key="test-api-key",
+                openai_api_key="test-api-key",
                 dimensions=3072,
                 check_embedding_ctx_length=True,
             )
@@ -126,6 +126,18 @@ class TestBuildEmbeddingModel:
             call_args = mock_openai.call_args
             assert call_args.kwargs["check_embedding_ctx_length"] is False
 
+    def test_openai_embedding_requires_api_key(self, mock_decrypt):
+        """Test that OpenAI embedding model raises ValueError without an API key."""
+        with patch("providers.vector_embedding.OpenAIEmbeddings") as mock_openai:
+            with pytest.raises(ValueError, match="encrypted_api_key is required"):
+                _build_embedding_model(
+                    langchain_con=LangChainCon.OPENAI,
+                    model="text-embedding-3-small",
+                    base_url="https://api.openai.com/v1",
+                )
+            mock_openai.assert_not_called()
+            mock_decrypt.assert_not_called()
+
     def test_unsupported_provider_raises_error(self):
         """Test that unsupported provider raises NotImplementedError."""
         with pytest.raises(NotImplementedError, match="Embedding not supported"):
@@ -140,7 +152,7 @@ class TestGetEmbedding:
     """Tests for get_embedding async function."""
 
     @pytest.mark.asyncio
-    async def test_get_embedding_valid_model(self, mock_config, mock_decrypt):
+    async def test_get_embedding_valid_model(self, mock_embedding_models, mock_decrypt):
         """Test successful embedding retrieval."""
         mock_embedding = AsyncMock()
         mock_embedding.aembed_query = AsyncMock(return_value=[0.1, 0.2, 0.3, 0.4, 0.5])
@@ -160,7 +172,9 @@ class TestGetEmbedding:
             mock_embedding.aembed_query.assert_called_once_with("test prompt")
 
     @pytest.mark.asyncio
-    async def test_get_embedding_with_dimensions(self, mock_config, mock_decrypt):
+    async def test_get_embedding_with_dimensions(
+        self, mock_embedding_models, mock_decrypt
+    ):
         """Test embedding retrieval with custom dimensions."""
         mock_embedding = AsyncMock()
         mock_embedding.aembed_query = AsyncMock(return_value=[0.1] * 768)
@@ -182,7 +196,7 @@ class TestGetEmbedding:
             assert all(x == 0.1 for x in result)
 
     @pytest.mark.asyncio
-    async def test_get_embedding_invalid_model(self, mock_config):
+    async def test_get_embedding_invalid_model(self, mock_embedding_models):
         """Test that invalid model raises ValueError."""
         with pytest.raises(ValueError, match="is not recognized as embedding model"):
             await get_embedding(
@@ -194,7 +208,7 @@ class TestGetEmbedding:
 
     @pytest.mark.asyncio
     async def test_get_embedding_calls_build_with_correct_params(
-        self, mock_config, mock_decrypt
+        self, mock_embedding_models, mock_decrypt
     ):
         """Test that get_embedding passes correct parameters to _build_embedding_model."""
         mock_embedding = AsyncMock()
@@ -222,7 +236,9 @@ class TestGetEmbedding:
             )
 
     @pytest.mark.asyncio
-    async def test_get_embedding_returns_empty_list(self, mock_config, mock_decrypt):
+    async def test_get_embedding_returns_empty_list(
+        self, mock_embedding_models, mock_decrypt
+    ):
         """Test handling of empty embedding response."""
         mock_embedding = AsyncMock()
         mock_embedding.aembed_query = AsyncMock(return_value=[])
@@ -241,7 +257,9 @@ class TestGetEmbedding:
             assert result == []
 
     @pytest.mark.asyncio
-    async def test_get_embedding_large_vector(self, mock_config, mock_decrypt):
+    async def test_get_embedding_large_vector(
+        self, mock_embedding_models, mock_decrypt
+    ):
         """Test handling of large embedding vectors."""
         large_embedding = [i * 0.001 for i in range(3072)]
         mock_embedding = AsyncMock()

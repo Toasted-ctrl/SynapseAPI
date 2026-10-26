@@ -99,7 +99,7 @@ def _encrypt_skill_data(
 
     Returns a dict with encrypted values for the specified fields.
     """
-    result = {}
+    result: dict[str, Any] = {}
 
     if _should_encrypt("description") and is_encrypted:
         result["description"] = _encrypt_field(description)
@@ -127,7 +127,7 @@ def _decrypt_skill_data_from_row(skill: UserSkillsT) -> dict[str, Any]:
 
     Checks the is_encrypted flag and decrypts fields accordingly.
     """
-    result = {}
+    result: dict[str, Any] = {}
 
     # Always include non-encrypted fields
     result["id"] = skill.id
