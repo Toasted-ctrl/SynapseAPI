@@ -5,6 +5,7 @@ from typing import Any, Literal, TypedDict
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_tool_call
 from langchain_core.messages import AIMessageChunk, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.errors import GraphBubbleUp
 from langgraph.graph.state import CompiledStateGraph
@@ -55,7 +56,7 @@ def build_agent_model(
 
     log.debug("Creating agent ...")
 
-    model = _build_llm(
+    llm = _build_llm(
         langchain_con=langchain_con,
         model=model,
         base_url=base_url,
@@ -68,7 +69,7 @@ def build_agent_model(
     log.debug("Built Model to add to agent ...")
 
     agent = create_agent(
-        model=model,
+        model=llm,
         tools=tools,
         system_prompt=system_prompt,
         checkpointer=checkpointer,
@@ -78,6 +79,14 @@ def build_agent_model(
     log.debug("Agent created, returning ...")
 
     return agent
+
+
+def _run_config(thread_id: uuid.UUID, user_id: uuid.UUID) -> RunnableConfig:
+    return {
+        "configurable": {"thread_id": str(thread_id)},
+        "callbacks": [langfuse_handler],
+        "metadata": {"thread_id": str(thread_id), "user_id": str(user_id)},
+    }
 
 
 class AgentEvent(TypedDict):
@@ -104,11 +113,7 @@ async def stream_agent(
     agent: CompiledStateGraph, prompt: str, thread_id: uuid.UUID, user_id: uuid.UUID
 ) -> AsyncGenerator[AgentEvent]:
 
-    config = {
-        "configurable": {"thread_id": str(thread_id)},
-        "callbacks": [langfuse_handler],
-        "metadata": {"thread_id": str(thread_id), "user_id": str(user_id)},
-    }
+    config = _run_config(thread_id=thread_id, user_id=user_id)
 
     log.debug(f"Stream agent config created for User '{user_id}'.")
 
@@ -161,11 +166,7 @@ async def stream_agent(
 async def run_agent(
     agent: CompiledStateGraph, prompt: str, thread_id: uuid.UUID, user_id: uuid.UUID
 ) -> dict:
-    config = {
-        "configurable": {"thread_id": str(thread_id)},
-        "callbacks": [langfuse_handler],
-        "metadata": {"thread_id": str(thread_id), "user_id": str(user_id)},
-    }
+    config = _run_config(thread_id=thread_id, user_id=user_id)
 
     log.debug(f"Run agent config created for User '{user_id}'.")
 

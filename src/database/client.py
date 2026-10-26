@@ -18,9 +18,9 @@ class ApplicationClient:
 
 async def get_client_from_client_id(
     session: AsyncSession, client_id: uuid.UUID
-) -> ApplicationClient | None:
+) -> ApplicationClient:
     """Returns an ApplicationClient object based on a provided client_id.
-    Will return None if no Client is found."""
+    Raises LookupError if no Client is found."""
 
     client = (
         await session.execute(select(ClientsT).where(ClientsT.id == client_id))

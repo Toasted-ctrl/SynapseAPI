@@ -18,6 +18,7 @@ async def get_models(encrypted_api_key: str) -> dict[str, list[str]]:
             models = [
                 model.name.removeprefix("models/")
                 async for model in await client.models.list()
+                if model.name
             ]
             cc_models = await model_config.chat_completion_models()
             tm_models = await model_config.translation_models()
