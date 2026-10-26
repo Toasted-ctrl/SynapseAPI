@@ -15,10 +15,7 @@ from database.user_skills import (
 
 from .models import SkillCreate, SkillCreateRead, SkillRead, SkillReplace
 
-router = APIRouter()
-
-
-tags = ["Skills"]
+router = APIRouter(tags=["Skills"])
 
 
 log = get_logger()
@@ -26,7 +23,6 @@ log = get_logger()
 
 @router.post(
     path="/skill",
-    tags=tags,
     description="Create a skill with the provided content and store it in the Vector Store.",
     response_model=SkillCreateRead,
 )
@@ -77,7 +73,6 @@ async def create_skill(
 
 @router.get(
     "/skill",
-    tags=tags,
     description="Retrieves a skill's name, description, instructions and parameter schema.",
     response_model=SkillRead,
 )
@@ -114,7 +109,6 @@ async def get_skill(
 
 @router.put(
     "/skill",
-    tags=tags,
     description=(
         "Replaces a skill with new values. "
         "All fields (name, description, skill_text, parameters_schema) must be provided. "

@@ -15,15 +15,11 @@ from providers.ollama.translategemma import (
 
 from .models import TranslationCreate, TranslationLanguagesRead, TranslationRead
 
-router = APIRouter()
-
-
-tags = ["Translation"]
+router = APIRouter(tags=["Translation"])
 
 
 @router.post(
     "/translation/translategemma",
-    tags=tags,
     description="Invokes a translation from translategemma.",
     response_model=TranslationRead,
 )
@@ -70,7 +66,6 @@ async def post_translation_translategemma(
 
 @router.get(
     "/translation/translategemma",
-    tags=["Translation"],
     response_model=TranslationLanguagesRead,
     description="Returns languages supported by translategemma.",
 )

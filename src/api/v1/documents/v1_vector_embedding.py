@@ -10,10 +10,7 @@ from providers.vector_embedding import get_embedding
 
 from .models import VectorEmbeddingCreate, VectorEmbeddingRead
 
-router = APIRouter()
-
-
-tags = ["Vector Store / Embedding"]
+router = APIRouter(tags=["Vector Store / Embedding"])
 
 
 log = get_logger()
@@ -21,7 +18,6 @@ log = get_logger()
 
 @router.post(
     path="/vector_embedding",
-    tags=tags,
     description=(
         "Returns a vector embedding of the query for the indicated Provider and model."
     ),
