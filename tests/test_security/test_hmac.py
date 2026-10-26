@@ -1,9 +1,9 @@
 import pytest
+
 from security.hmac import hash_hmac, is_valid_hmac
 
 
 class TestHashHmac:
-
     def test_returns_valid_hmac_string(self):
         """Test that hash_hmac returns a valid hex string."""
         content = "test content"
@@ -84,7 +84,6 @@ class TestHashHmac:
 
 
 class TestIsValidHmac:
-
     def test_returns_true_for_matching_hmacs(self):
         """Test that matching HMAC signatures return True."""
         hmac_value = "abc123def456abc123def456abc123def456abc123def456abc123def456abc1"

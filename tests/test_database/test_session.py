@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.session import get_db_session, get_db_session_ctx
@@ -60,8 +61,10 @@ class TestGetDbSession:
         mock_begin_cm.__aexit__ = AsyncMock(return_value=None)
         mock_session.begin = MagicMock(return_value=mock_begin_cm)
 
-        with patch("database.session.AsyncSessionLocal") as mock_session_local, \
-             patch("database.session.log") as mock_log:
+        with (
+            patch("database.session.AsyncSessionLocal") as mock_session_local,
+            patch("database.session.log") as mock_log,
+        ):
             session_cm = AsyncMock()
             session_cm.__aenter__ = AsyncMock(return_value=mock_session)
             session_cm.__aexit__ = AsyncMock(return_value=None)
@@ -81,8 +84,10 @@ class TestGetDbSession:
         mock_begin_cm.__aexit__ = AsyncMock(return_value=None)
         mock_session.begin = MagicMock(return_value=mock_begin_cm)
 
-        with patch("database.session.AsyncSessionLocal") as mock_session_local, \
-             patch("database.session.log") as mock_log:
+        with (
+            patch("database.session.AsyncSessionLocal") as mock_session_local,
+            patch("database.session.log") as mock_log,
+        ):
             session_cm = AsyncMock()
             session_cm.__aenter__ = AsyncMock(return_value=mock_session)
             session_cm.__aexit__ = AsyncMock(return_value=None)
@@ -202,8 +207,10 @@ class TestGetDbSessionCtx:
     async def test_logs_open_and_close(self):
         session_local, *_ = _mock_session_local()
 
-        with patch("database.session.AsyncSessionLocal", session_local), \
-             patch("database.session.log") as mock_log:
+        with (
+            patch("database.session.AsyncSessionLocal", session_local),
+            patch("database.session.log") as mock_log,
+        ):
             async with get_db_session_ctx():
                 pass
 

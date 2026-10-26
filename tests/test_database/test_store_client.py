@@ -1,24 +1,24 @@
 import pytest
+from db_helpers import make_session, params
 
 from core.config import config
 from database.schemas.clients import ClientsT
 from database.store_client import StoredClient, store_client
-from db_helpers import make_session, params
 from security.hash import get_hash_sha256
 from security.hmac import hash_hmac
-
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("fake_crypto")]
 
 
 def _kwargs(**overrides):
-    kwargs = dict(client_name="my-app", key_type="User", owner_email="owner@example.com")
+    kwargs = dict(
+        client_name="my-app", key_type="User", owner_email="owner@example.com"
+    )
     kwargs.update(overrides)
     return kwargs
 
 
 class TestStoreClient:
-
     async def test_stores_client_with_generated_secrets(self):
         session = make_session(scalar=[0])
 
@@ -40,7 +40,9 @@ class TestStoreClient:
     async def test_uses_provided_api_key_and_hmac_secret(self):
         session = make_session(scalar=[0])
 
-        result = await store_client(session=session, **_kwargs(api_key="given-key", hmac_secret="given-hmac"))
+        result = await store_client(
+            session=session, **_kwargs(api_key="given-key", hmac_secret="given-hmac")
+        )
 
         [added] = session.added
         assert result.api_key == "given-key"
@@ -50,7 +52,10 @@ class TestStoreClient:
     async def test_encrypts_redirect_uri_when_provided(self):
         session = make_session(scalar=[0])
 
-        await store_client(session=session, **_kwargs(key_type="Application", redirect_uri="https://app/cb"))
+        await store_client(
+            session=session,
+            **_kwargs(key_type="Application", redirect_uri="https://app/cb"),
+        )
 
         assert session.added[0].encrypted_redirect_uri == "enc:https://app/cb"
 
@@ -59,12 +64,16 @@ class TestStoreClient:
 
         await store_client(
             session=session,
-            **_kwargs(require_jwt=False, require_external_id=False, is_active=False)
+            **_kwargs(require_jwt=False, require_external_id=False, is_active=False),
         )
 
         [added] = session.added
-        assert added.blind_index_client_name == hash_hmac(content="my-app", key=config.BLIND_INDEX_HMAC_KEY)
-        assert added.blind_index_owner_email == hash_hmac(content="owner@example.com", key=config.BLIND_INDEX_HMAC_KEY)
+        assert added.blind_index_client_name == hash_hmac(
+            content="my-app", key=config.BLIND_INDEX_HMAC_KEY
+        )
+        assert added.blind_index_owner_email == hash_hmac(
+            content="owner@example.com", key=config.BLIND_INDEX_HMAC_KEY
+        )
         assert added.require_jwt is False
         assert added.require_external_id is False
         assert added.is_active is False

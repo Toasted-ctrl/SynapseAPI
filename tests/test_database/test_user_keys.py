@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 
 import pytest
+from db_helpers import make_session, params, row
 
 from database.schemas.user_keys import UserKeysT
 from database.user_keys import (
@@ -9,10 +10,8 @@ from database.user_keys import (
     ProviderAPIKey,
     delete_user_key_by_key_id,
     get_or_store_key,
-    get_user_active_keys
+    get_user_active_keys,
 )
-from db_helpers import make_session, params, row
-
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("fake_crypto")]
 
@@ -24,12 +23,11 @@ def _key_row(user_id, provider_id, api_key="sk-1234567890abc"):
         provider_id=provider_id,
         encrypted_api_key=f"enc:{api_key}",
         api_key_short=api_key[:10],
-        expiration_date=datetime.now() + timedelta(days=10)
+        expiration_date=datetime.now() + timedelta(days=10),
     )
 
 
 class TestGetUserActiveKeys:
-
     async def test_returns_keys_with_encrypted_value(self):
         user_id = uuid.uuid4()
         rows = [_key_row(user_id, uuid.uuid4()), _key_row(user_id, uuid.uuid4())]
@@ -44,7 +42,7 @@ class TestGetUserActiveKeys:
                 api_key_id=r.id,
                 api_key=r.encrypted_api_key,
                 api_key_short=r.api_key_short,
-                expiration_date=r.expiration_date
+                expiration_date=r.expiration_date,
             )
             for r in rows
         ]
@@ -66,13 +64,14 @@ class TestGetUserActiveKeys:
 
 
 class TestGetOrStoreKey:
-
     async def test_returns_existing_key_decrypted(self):
         user_id, provider_id = uuid.uuid4(), uuid.uuid4()
         existing = _key_row(user_id, provider_id, api_key="sk-existing-key")
         session = make_session(scalar=[existing])
 
-        result = await get_or_store_key(session=session, api_key="sk-new", user_id=user_id, provider_id=provider_id)
+        result = await get_or_store_key(
+            session=session, api_key="sk-new", user_id=user_id, provider_id=provider_id
+        )
 
         assert result.api_key == "sk-existing-key"
         assert result.api_key_id == existing.id
@@ -87,7 +86,7 @@ class TestGetOrStoreKey:
             session=session,
             api_key="sk-1234567890abcdef",
             user_id=user_id,
-            provider_id=provider_id
+            provider_id=provider_id,
         )
 
         [added] = session.added
@@ -104,30 +103,41 @@ class TestGetOrStoreKey:
         provider_id = uuid.uuid4()
         session = make_session(scalar=[None, 1])
 
-        await get_or_store_key(session=session, api_key="sk-abc", user_id=uuid.uuid4(), provider_id=provider_id)
+        await get_or_store_key(
+            session=session,
+            api_key="sk-abc",
+            user_id=uuid.uuid4(),
+            provider_id=provider_id,
+        )
 
         provider_check = session.scalar.await_args_list[1]
         assert params(provider_check) == [provider_id]
-        assert "providers.requires_api_key = true" in str(provider_check.args[0])
+        assert "AND providers.requires_api_key" in str(provider_check.args[0])
 
     async def test_rejects_provider_without_key_requirement(self):
         provider_id = uuid.uuid4()
         session = make_session(scalar=[None, 0])
 
         with pytest.raises(ValueError, match=str(provider_id)):
-            await get_or_store_key(session=session, api_key="sk-abc", user_id=uuid.uuid4(), provider_id=provider_id)
+            await get_or_store_key(
+                session=session,
+                api_key="sk-abc",
+                user_id=uuid.uuid4(),
+                provider_id=provider_id,
+            )
 
         session.add.assert_not_called()
 
 
 class TestDeleteUserKeyByKeyId:
-
     async def test_deletes_existing_key(self):
         user_id = uuid.uuid4()
         existing = _key_row(user_id, uuid.uuid4())
         session = make_session(execute=[existing])
 
-        result = await delete_user_key_by_key_id(session=session, key_id=existing.id, user_id=user_id)
+        result = await delete_user_key_by_key_id(
+            session=session, key_id=existing.id, user_id=user_id
+        )
 
         assert result is None
         session.delete.assert_awaited_once_with(existing)
@@ -138,7 +148,9 @@ class TestDeleteUserKeyByKeyId:
         existing = _key_row(user_id, uuid.uuid4())
         session = make_session(execute=[existing])
 
-        await delete_user_key_by_key_id(session=session, key_id=existing.id, user_id=user_id)
+        await delete_user_key_by_key_id(
+            session=session, key_id=existing.id, user_id=user_id
+        )
 
         assert params(session.execute.await_args) == [existing.id, user_id]
 
@@ -147,7 +159,9 @@ class TestDeleteUserKeyByKeyId:
         session = make_session(execute=[None])
 
         with pytest.raises(KeyNotFoundError, match=str(key_id)):
-            await delete_user_key_by_key_id(session=session, key_id=key_id, user_id=uuid.uuid4())
+            await delete_user_key_by_key_id(
+                session=session, key_id=key_id, user_id=uuid.uuid4()
+            )
 
         session.delete.assert_not_called()
         session.flush.assert_not_called()

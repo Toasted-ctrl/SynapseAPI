@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from typing import Any
 from urllib.parse import urlencode
 
 from fastapi import Request, Response
@@ -9,26 +11,29 @@ from security.hmac import hash_hmac
 
 log = get_logger()
 
-def cache_key_builder(
-    func,
-    namespace: str = "",
-    request: Request = None,
-    response: Response = None,
-    *args,
-    **kwargs
-):
 
-    key = config.BLIND_INDEX_HMAC_KEY
-    
+def cache_key_builder(
+    func: Callable[..., Any],
+    namespace: str = "",
+    *,
+    request: Request | None = None,
+    response: Response | None = None,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+) -> str:
     """Build cache key to store results including hashed api_key, jwt and path.
     Requires request: Request to be included in the main function call.
     Should ONLY be used on non-sensitive GET requests."""
 
-    user = kwargs.get("kwargs", {}).get("user")
-    user_id = hash_hmac(
-        content=str(user.id) if user else "Anonymous",
-        key=key
-    )
+    if request is None:
+        raise ValueError(
+            f"cache_key_builder requires 'request: Request' on '{func.__name__}'"
+        )
+
+    key = config.BLIND_INDEX_HMAC_KEY
+
+    user = kwargs.get("user")
+    user_id = hash_hmac(content=str(user.id) if user else "Anonymous", key=key)
 
     api_key = hash_hmac(content=request.headers.get("X-API-Key", "Not Set"), key=key)
     path = request.url.path

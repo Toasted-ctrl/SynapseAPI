@@ -1,6 +1,5 @@
-print("\n>>> STARTING INITIALiZATION PROCESS\n")
-
 import asyncio
+
 from langgraph.checkpoint.postgres import PostgresSaver
 
 from core.config import config
@@ -9,13 +8,13 @@ from database.session import async_engine
 from init.create_tables import create_tables
 from init.preconfigurations import (
     create_preconfigured_application_clients,
-    create_preconfigured_user_clients,
+    create_preconfigured_mcps,
+    create_preconfigured_model_sampling,
+    create_preconfigured_models,
     create_preconfigured_providers,
+    create_preconfigured_user_clients,
     create_preconfigured_vector_store,
     create_preconfigured_vector_store_collections,
-    create_preconfigured_models,
-    create_preconfigured_mcps,
-    create_preconfigured_model_sampling
 )
 
 # -------------------------------------------------------------------
@@ -39,6 +38,9 @@ CREATE_PRECONFIGURED_MODEL_SAMPLING = True
 log = get_logger()
 
 
+print("\n>>> STARTING INITIALiZATION PROCESS\n")
+
+
 async def main() -> None:
     if CREATE_TABLES:
         print("\n---- STARTING TABLE CREATION ----\n")
@@ -49,24 +51,34 @@ async def main() -> None:
         await create_preconfigured_providers()
 
     if CREATE_PRECONFIGURED_APPLICATION_CLIENTS:
-        print("\n---- STARTING CREATION OF / CHECKING PRECONFIGURED APPLICATION CLIENTS ----\n")
+        print(
+            "\n---- STARTING CREATION OF / CHECKING PRECONFIGURED APPLICATION CLIENTS ----\n"
+        )
         await create_preconfigured_application_clients()
 
     if CREATE_PRECONFIGURED_USER_CLIENTS:
-        print("\n---- STARTING CREATION OF / CHECKING PRECONFIGURED USER CLIENTS ----\n")
+        print(
+            "\n---- STARTING CREATION OF / CHECKING PRECONFIGURED USER CLIENTS ----\n"
+        )
         await create_preconfigured_user_clients()
 
     if CREATE_PRECONFIGURED_VECTOR_STORES:
-        print("\n---- STARTING CREATION OF / CHECKING PRECONFIGURED VECTOR STORES ----\n")
+        print(
+            "\n---- STARTING CREATION OF / CHECKING PRECONFIGURED VECTOR STORES ----\n"
+        )
         await create_preconfigured_vector_store()
 
     if CREATE_PRECONFIGURED_VECTOR_STORE_COLLECTIONS:
-        print("\n---- STARTING CREATION OF / CHECKING PRECONFIGURED VECTOR STORE COLLECTIONS ----\n")
+        print(
+            "\n---- STARTING CREATION OF / CHECKING PRECONFIGURED VECTOR STORE COLLECTIONS ----\n"
+        )
         await create_preconfigured_vector_store_collections()
 
     if CREATE_CHECKPOINT_TABLES:
         print("\n---- STARTING CREATION OF CHECKPOINT TABLES ----\n")
-        with PostgresSaver.from_conn_string(conn_string=config.PG_CHECKPOINTER_URL) as checkpointer:
+        with PostgresSaver.from_conn_string(
+            conn_string=config.PG_CHECKPOINTER_URL
+        ) as checkpointer:
             checkpointer.setup()
             log.info("DONE: Checkpoint tables created.")
 

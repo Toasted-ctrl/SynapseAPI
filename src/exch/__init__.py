@@ -1,5 +1,5 @@
-from fastapi import FastAPI
 import openai
+from fastapi import FastAPI
 
 from .exc_openai import not_found_handler
 

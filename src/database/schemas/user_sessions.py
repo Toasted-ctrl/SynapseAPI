@@ -1,7 +1,8 @@
-from datetime import datetime
-from sqlalchemy import String, UUID, DateTime, func, text
-from sqlalchemy.orm import Mapped, mapped_column
 import uuid
+from datetime import datetime
+
+from sqlalchemy import UUID, DateTime, String, func, text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from database.schemas.base import Base
 
@@ -9,24 +10,16 @@ from database.schemas.base import Base
 class SessionsT(Base):
     __tablename__ = "user_sessions"
 
-    session_id_hash: Mapped[str] = mapped_column(
-        String(255),
-        primary_key=True
-    )
+    session_id_hash: Mapped[str] = mapped_column(String(255), primary_key=True)
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID,
-        nullable=False
-    )
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID, nullable=False)
 
     created_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
     expiration_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=func.now() + text("INTERVAL '24 hours'")
+        server_default=func.now() + text("INTERVAL '24 hours'"),
     )

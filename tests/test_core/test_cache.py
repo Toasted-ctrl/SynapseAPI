@@ -6,7 +6,6 @@ from starlette.requests import Request
 from core.cache import cache_key_builder
 from security.hmac import hash_hmac
 
-
 HMAC_KEY = b"test-hmac-key"
 PREFIX = "test-prefix"
 
@@ -14,19 +13,23 @@ PREFIX = "test-prefix"
 @pytest.fixture(autouse=True)
 def patch_deps(monkeypatch):
     """Patches the HMAC key and the FastAPICache prefix."""
-    monkeypatch.setattr("core.cache.config", SimpleNamespace(BLIND_INDEX_HMAC_KEY=HMAC_KEY))
+    monkeypatch.setattr(
+        "core.cache.config", SimpleNamespace(BLIND_INDEX_HMAC_KEY=HMAC_KEY)
+    )
     monkeypatch.setattr("core.cache.FastAPICache.get_prefix", lambda: PREFIX)
 
 
 def make_request(path="/v1/providers/models/sampling", query=b"", api_key=None):
     headers = [(b"x-api-key", api_key.encode())] if api_key else []
-    return Request({
-        "type": "http",
-        "method": "GET",
-        "path": path,
-        "query_string": query,
-        "headers": headers,
-    })
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": path,
+            "query_string": query,
+            "headers": headers,
+        }
+    )
 
 
 def endpoint():
@@ -46,11 +49,12 @@ def build(request, user=None, func=endpoint):
 
 
 class TestCacheKeyBuilder:
-
     def test_key_format(self):
         """Test that the key contains prefix, function, hashed api key, hashed user, path and query."""
         user = SimpleNamespace(id=42)
-        key = build(make_request(query=b"provider_name=ollama", api_key="secret"), user=user)
+        key = build(
+            make_request(query=b"provider_name=ollama", api_key="secret"), user=user
+        )
 
         expected = (
             f"{PREFIX}:endpoint:"
@@ -96,7 +100,9 @@ class TestCacheKeyBuilder:
     def test_different_users_give_different_keys(self):
         """Test that the user id is part of the key."""
         request = make_request()
-        assert build(request, user=SimpleNamespace(id=1)) != build(request, user=SimpleNamespace(id=2))
+        assert build(request, user=SimpleNamespace(id=1)) != build(
+            request, user=SimpleNamespace(id=2)
+        )
 
     def test_anonymous_user(self):
         """Test that a missing user is hashed as 'Anonymous'."""
@@ -114,12 +120,16 @@ class TestCacheKeyBuilder:
 
     def test_raw_secrets_not_in_key(self):
         """Test that the api key and user id are not stored in plain text."""
-        key = build(make_request(api_key="super-secret-api-key"), user=SimpleNamespace(id="user-uuid-1234"))
+        key = build(
+            make_request(api_key="super-secret-api-key"),
+            user=SimpleNamespace(id="user-uuid-1234"),
+        )
         assert "super-secret-api-key" not in key
         assert "user-uuid-1234" not in key
 
     def test_different_functions_give_different_keys(self):
         """Test that the function name is part of the key."""
+
         def other_endpoint():
             pass
 

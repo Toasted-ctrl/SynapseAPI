@@ -1,29 +1,70 @@
 from typing import Annotated
 from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 
 class AgentModelParameters(BaseModel):
     """Sampling parameters passed to the model provider."""
-    temperature: Annotated[float | None, Field(ge=0.0, le=2.0, description="Controls randomness. Lower values make output more focused and deterministic; higher values make it more varied.")] = None
-    top_p: Annotated[float | None, Field(gt=0.0, le=1.0, description="Nucleus sampling. The model samples only from the smallest set of tokens whose cumulative probability exceeds top_p. Lower values restrict output to more likely tokens.")] = None
-    top_k: Annotated[int | None, Field(ge=1, description="Restricts sampling to the k most likely tokens at each step. Lower values make output more predictable.")] = None
+
+    temperature: Annotated[
+        float | None,
+        Field(
+            ge=0.0,
+            le=2.0,
+            description="Controls randomness. Lower values make output more focused and deterministic; higher values make it more varied.",
+        ),
+    ] = None
+    top_p: Annotated[
+        float | None,
+        Field(
+            gt=0.0,
+            le=1.0,
+            description="Nucleus sampling. The model samples only from the smallest set of tokens whose cumulative probability exceeds top_p. Lower values restrict output to more likely tokens.",
+        ),
+    ] = None
+    top_k: Annotated[
+        int | None,
+        Field(
+            ge=1,
+            description="Restricts sampling to the k most likely tokens at each step. Lower values make output more predictable.",
+        ),
+    ] = None
 
 
 class AgentModel(BaseModel):
     """The model the Agent runs on."""
-    provider: Annotated[str, Field(min_length=1, description="Model provider, e.g. 'anthropic'.")]
-    name: Annotated[str, Field(min_length=1, description="Provider-specific model name.")]
-    parameters: Annotated[AgentModelParameters, Field(default_factory=AgentModelParameters, description="Sampling parameters for the model.")]
+
+    provider: Annotated[
+        str, Field(min_length=1, description="Model provider, e.g. 'anthropic'.")
+    ]
+    name: Annotated[
+        str, Field(min_length=1, description="Provider-specific model name.")
+    ]
+    parameters: Annotated[
+        AgentModelParameters, Field(description="Sampling parameters for the model.")
+    ] = Field(default_factory=AgentModelParameters)
 
 
 class AgentTools(BaseModel):
     """Tools the Agent is allowed to use."""
-    mcp_ids: Annotated[list[UUID], Field(default_factory=list, description="List of MCP servers that Agent is allowed to use.")]
-    web_search: Annotated[bool, Field(description="Allows the Agent to search the web.")] = False
-    user_vs_files: Annotated[bool, Field(description="Allows the Agent to search the user's files.")] = False
-    user_vs_memories: Annotated[bool, Field(description="Allows the Agent to search the user's memories.")] = False
-    user_vs_skills: Annotated[bool, Field(description="Allows the Agent to discover the user's skills.")] = False
+
+    mcp_ids: Annotated[
+        list[UUID],
+        Field(description="List of MCP servers that Agent is allowed to use."),
+    ] = Field(default_factory=list)
+    web_search: Annotated[
+        bool, Field(description="Allows the Agent to search the web.")
+    ] = False
+    user_vs_files: Annotated[
+        bool, Field(description="Allows the Agent to search the user's files.")
+    ] = False
+    user_vs_memories: Annotated[
+        bool, Field(description="Allows the Agent to search the user's memories.")
+    ] = False
+    user_vs_skills: Annotated[
+        bool, Field(description="Allows the Agent to discover the user's skills.")
+    ] = False
 
 
 class AgentConfigurationBase(BaseModel):
@@ -32,10 +73,15 @@ class AgentConfigurationBase(BaseModel):
     Everything except name is stored as JSON by database.agent, so changes here must
     follow the settings versioning rules described there.
     """
+
     name: Annotated[str, Field(min_length=1, description="Name of the Agent.")]
     model: AgentModel
-    system_prompt: Annotated[str | None, Field(description="System prompt given to the Agent.")] = None
-    tools: Annotated[AgentTools, Field(default_factory=AgentTools, description="Tools the Agent is allowed to use.")]
+    system_prompt: Annotated[
+        str | None, Field(description="System prompt given to the Agent.")
+    ] = None
+    tools: Annotated[
+        AgentTools, Field(description="Tools the Agent is allowed to use.")
+    ] = Field(default_factory=AgentTools)
 
 
 class AgentConfigurationCreate(AgentConfigurationBase):
@@ -44,8 +90,12 @@ class AgentConfigurationCreate(AgentConfigurationBase):
 
 class AgentConfigurationRead(AgentConfigurationBase):
     """An Agent as returned by the API."""
+
     id: Annotated[UUID, Field(description="ID of the Agent.")]
-    is_encrypted: Annotated[bool, Field(
-        default=False,
-        description="Whether this agent's configuration is stored encrypted."
-    )] = False
+    is_encrypted: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Whether this agent's configuration is stored encrypted.",
+        ),
+    ] = False

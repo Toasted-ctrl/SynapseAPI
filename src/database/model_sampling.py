@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,22 +14,21 @@ class ModelSampling:
 
 
 async def get_model_sampling_settings(
-    session: AsyncSession,
-    provider_name: str,
-    model_name: str
+    session: AsyncSession, provider_name: str, model_name: str
 ) -> ModelSampling:
     """Will check available model sampling settings for the indicated model and provider.
     Returns a ModelSampling object."""
-    sampling = (await session.scalars(
-        select(ModelSamplingT)
-        .where(
-            ModelSamplingT.provider == provider_name,
-            ModelSamplingT.name == model_name
+    sampling = (
+        await session.scalars(
+            select(ModelSamplingT).where(
+                ModelSamplingT.provider == provider_name,
+                ModelSamplingT.name == model_name,
+            )
         )
-    )).all()
+    ).all()
     sampling_dict = {s.parameter: s.supported for s in sampling}
     return ModelSampling(
-        temperature=sampling_dict.get('temperature', False),
-        top_k=sampling_dict.get('top_k', False),
-        top_p=sampling_dict.get('top_p', False)
+        temperature=sampling_dict.get("temperature", False),
+        top_k=sampling_dict.get("top_k", False),
+        top_p=sampling_dict.get("top_p", False),
     )

@@ -15,7 +15,7 @@ def encrypt(content: str) -> str:
     _validate_content(content)
     key = config.ENCRYPTION_KEY
     f = Fernet(key)
-    return f.encrypt(content.encode(encoding='utf-8')).decode(encoding='utf-8')
+    return f.encrypt(content.encode(encoding="utf-8")).decode(encoding="utf-8")
 
 
 def decrypt(content: str) -> str:
@@ -23,4 +23,4 @@ def decrypt(content: str) -> str:
     _validate_content(content)
     key = config.ENCRYPTION_KEY
     f = Fernet(key)
-    return f.decrypt(content.encode(encoding='utf-8')).decode(encoding='utf-8')
+    return f.decrypt(content.encode(encoding="utf-8")).decode(encoding="utf-8")

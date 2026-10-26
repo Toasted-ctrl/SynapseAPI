@@ -1,6 +1,6 @@
-from pydantic import BaseModel
-from typing import Optional
 from uuid import UUID
+
+from pydantic import BaseModel
 
 
 class Document(BaseModel):
@@ -54,7 +54,7 @@ class SkillCreate(BaseModel):
     name: str
     description: str
     skill_text: str
-    parameters_schema: Optional[dict] = None
+    parameters_schema: dict | None = None
 
 
 class SkillCreateRead(BaseModel):
@@ -66,16 +66,17 @@ class SkillCreateRead(BaseModel):
 class SkillRead(BaseModel):
     skill_id: UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     instructions: str
-    parameter_schema: Optional[dict] = None
+    parameter_schema: dict | None = None
     is_encrypted: bool = False
 
 
 class SkillReplace(BaseModel):
     """Complete replacement for a skill (PUT). All fields are required and always encrypted."""
+
     skill_id: UUID
     name: str
     description: str
     skill_text: str
-    parameters_schema: Optional[dict] = None
+    parameters_schema: dict | None = None

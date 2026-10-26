@@ -1,15 +1,14 @@
 import uuid
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from tools.get_tools import get_agent_tools
+import pytest
 
+from tools.get_tools import get_agent_tools
 
 pytestmark = pytest.mark.asyncio
 
 
 class TestGetAgentTools:
-
     async def test_returns_all_enabled_tools(self):
         """Test that all enabled tools are returned."""
         user_id = uuid.uuid4()
@@ -24,13 +23,25 @@ class TestGetAgentTools:
         mock_vs_memories_tool = MagicMock()
         mock_skill_tool = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock) as mock_get_mcp:
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock) as mock_get_web:
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock) as mock_get_vs:
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock) as mock_get_skill:
+        with patch(
+            "tools.get_tools.get_mcp_tools", new_callable=AsyncMock
+        ) as mock_get_mcp:
+            with patch(
+                "tools.get_tools.get_web_search_tool", new_callable=AsyncMock
+            ) as mock_get_web:
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ) as mock_get_vs:
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ) as mock_get_skill:
                         mock_get_mcp.return_value = [mock_mcp_tool]
                         mock_get_web.return_value = [mock_web_tool]
-                        mock_get_vs.side_effect = [mock_vs_files_tool, mock_vs_memories_tool]
+                        mock_get_vs.side_effect = [
+                            mock_vs_files_tool,
+                            mock_vs_memories_tool,
+                        ]
                         mock_get_skill.return_value = mock_skill_tool
 
                         result = await get_agent_tools(
@@ -41,7 +52,7 @@ class TestGetAgentTools:
                             user_vs_memories=True,
                             user_vs_skills=True,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         assert len(result) == 5
@@ -57,10 +68,19 @@ class TestGetAgentTools:
         mock_session = AsyncMock()
         mock_pr = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock) as mock_get_mcp:
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock) as mock_get_web:
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock) as mock_get_vs:
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch(
+            "tools.get_tools.get_mcp_tools", new_callable=AsyncMock
+        ) as mock_get_mcp:
+            with patch(
+                "tools.get_tools.get_web_search_tool", new_callable=AsyncMock
+            ) as mock_get_web:
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ) as mock_get_vs:
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_mcp.return_value = []
                         mock_get_web.return_value = []
                         mock_get_vs.return_value = MagicMock()
@@ -73,7 +93,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_web.assert_not_called()
@@ -89,10 +109,19 @@ class TestGetAgentTools:
         mock_mcp_tool = MagicMock()
         mock_web_tool = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock) as mock_get_mcp:
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock) as mock_get_web:
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock) as mock_get_vs:
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch(
+            "tools.get_tools.get_mcp_tools", new_callable=AsyncMock
+        ) as mock_get_mcp:
+            with patch(
+                "tools.get_tools.get_web_search_tool", new_callable=AsyncMock
+            ) as mock_get_web:
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ) as mock_get_vs:
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_mcp.return_value = [mock_mcp_tool]
                         mock_get_web.return_value = [mock_web_tool]
 
@@ -104,7 +133,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_vs.assert_not_called()
@@ -116,10 +145,19 @@ class TestGetAgentTools:
         mock_session = AsyncMock()
         mock_pr = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock) as mock_get_mcp:
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock) as mock_get_web:
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch(
+            "tools.get_tools.get_mcp_tools", new_callable=AsyncMock
+        ) as mock_get_mcp:
+            with patch(
+                "tools.get_tools.get_web_search_tool", new_callable=AsyncMock
+            ) as mock_get_web:
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_web.return_value = []
 
                         await get_agent_tools(
@@ -130,7 +168,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_mcp.assert_not_called()
@@ -141,10 +179,15 @@ class TestGetAgentTools:
         mock_session = AsyncMock()
         mock_pr = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         result = await get_agent_tools(
                             mcp_ids=[],
                             session=mock_session,
@@ -153,7 +196,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         assert result == []
@@ -165,10 +208,17 @@ class TestGetAgentTools:
         mock_session = AsyncMock()
         mock_pr = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock) as mock_get_mcp:
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch(
+            "tools.get_tools.get_mcp_tools", new_callable=AsyncMock
+        ) as mock_get_mcp:
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_mcp.return_value = []
 
                         await get_agent_tools(
@@ -179,12 +229,11 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_mcp.assert_called_once_with(
-                            session=mock_session,
-                            mcp_ids=mcp_ids
+                            session=mock_session, mcp_ids=mcp_ids
                         )
 
     async def test_passes_correct_parameters_to_vs_search_tools(self):
@@ -193,10 +242,15 @@ class TestGetAgentTools:
         mock_session = AsyncMock()
         mock_pr = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock) as mock_get_vs:
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ) as mock_get_vs:
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_vs.return_value = MagicMock()
 
                         await get_agent_tools(
@@ -207,23 +261,23 @@ class TestGetAgentTools:
                             user_vs_memories=True,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         assert mock_get_vs.call_count == 2
                         calls = mock_get_vs.call_args_list
 
                         assert calls[0].kwargs == {
-                            'session': mock_session,
-                            'user_id': user_id,
-                            'scope': 'user_vs_files',
-                            'pr': mock_pr
+                            "session": mock_session,
+                            "user_id": user_id,
+                            "scope": "user_vs_files",
+                            "pr": mock_pr,
                         }
                         assert calls[1].kwargs == {
-                            'session': mock_session,
-                            'user_id': user_id,
-                            'scope': 'user_vs_memories',
-                            'pr': mock_pr
+                            "session": mock_session,
+                            "user_id": user_id,
+                            "scope": "user_vs_memories",
+                            "pr": mock_pr,
                         }
 
     async def test_only_user_vs_files_enabled(self):
@@ -233,10 +287,15 @@ class TestGetAgentTools:
         mock_pr = MagicMock()
         mock_vs_tool = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock) as mock_get_vs:
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ) as mock_get_vs:
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_vs.return_value = mock_vs_tool
 
                         result = await get_agent_tools(
@@ -247,14 +306,14 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_vs.assert_called_once_with(
                             session=mock_session,
                             user_id=user_id,
-                            scope='user_vs_files',
-                            pr=mock_pr
+                            scope="user_vs_files",
+                            pr=mock_pr,
                         )
                         assert result == [mock_vs_tool]
 
@@ -265,10 +324,17 @@ class TestGetAgentTools:
         mock_pr = MagicMock()
         mock_vs_tool = MagicMock()
 
-        with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock) as mock_get_vs:
-            with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch(
+            "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+        ) as mock_get_vs:
+            with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_web_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_vs.return_value = mock_vs_tool
 
                         result = await get_agent_tools(
@@ -279,14 +345,14 @@ class TestGetAgentTools:
                             user_vs_memories=True,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_vs.assert_called_once_with(
                             session=mock_session,
                             user_id=user_id,
-                            scope='user_vs_memories',
-                            pr=mock_pr
+                            scope="user_vs_memories",
+                            pr=mock_pr,
                         )
                         assert result == [mock_vs_tool]
 
@@ -297,19 +363,31 @@ class TestGetAgentTools:
         mock_session = AsyncMock()
         mock_pr = MagicMock()
 
-        mock_mcp_tool = MagicMock(name='mcp_tool')
-        mock_web_tool = MagicMock(name='web_tool')
-        mock_vs_files_tool = MagicMock(name='vs_files_tool')
-        mock_vs_memories_tool = MagicMock(name='vs_memories_tool')
-        mock_skill_tool = MagicMock(name='skill_tool')
+        mock_mcp_tool = MagicMock(name="mcp_tool")
+        mock_web_tool = MagicMock(name="web_tool")
+        mock_vs_files_tool = MagicMock(name="vs_files_tool")
+        mock_vs_memories_tool = MagicMock(name="vs_memories_tool")
+        mock_skill_tool = MagicMock(name="skill_tool")
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock) as mock_get_mcp:
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock) as mock_get_web:
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock) as mock_get_vs:
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock) as mock_get_skill:
+        with patch(
+            "tools.get_tools.get_mcp_tools", new_callable=AsyncMock
+        ) as mock_get_mcp:
+            with patch(
+                "tools.get_tools.get_web_search_tool", new_callable=AsyncMock
+            ) as mock_get_web:
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ) as mock_get_vs:
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ) as mock_get_skill:
                         mock_get_mcp.return_value = [mock_mcp_tool]
                         mock_get_web.return_value = [mock_web_tool]
-                        mock_get_vs.side_effect = [mock_vs_files_tool, mock_vs_memories_tool]
+                        mock_get_vs.side_effect = [
+                            mock_vs_files_tool,
+                            mock_vs_memories_tool,
+                        ]
                         mock_get_skill.return_value = mock_skill_tool
 
                         result = await get_agent_tools(
@@ -320,7 +398,7 @@ class TestGetAgentTools:
                             user_vs_memories=True,
                             user_vs_skills=True,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         assert result[0] == mock_mcp_tool
@@ -339,10 +417,17 @@ class TestGetAgentTools:
         mock_mcp_tool1 = MagicMock()
         mock_mcp_tool2 = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock) as mock_get_mcp:
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock):
+        with patch(
+            "tools.get_tools.get_mcp_tools", new_callable=AsyncMock
+        ) as mock_get_mcp:
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ):
                         mock_get_mcp.return_value = [mock_mcp_tool1, mock_mcp_tool2]
 
                         result = await get_agent_tools(
@@ -353,7 +438,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         assert len(result) == 2
@@ -367,10 +452,15 @@ class TestGetAgentTools:
         mock_pr = MagicMock()
         mock_skill_tool = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock) as mock_get_skill:
+        with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ) as mock_get_skill:
                         mock_get_skill.return_value = mock_skill_tool
 
                         result = await get_agent_tools(
@@ -381,7 +471,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=True,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         assert mock_skill_tool in result
@@ -393,10 +483,15 @@ class TestGetAgentTools:
         mock_session = AsyncMock()
         mock_pr = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock) as mock_get_skill:
+        with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ) as mock_get_skill:
                         result = await get_agent_tools(
                             mcp_ids=[],
                             session=mock_session,
@@ -405,7 +500,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=False,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_skill.assert_not_called()
@@ -418,10 +513,15 @@ class TestGetAgentTools:
         mock_pr = MagicMock()
         mock_skill_tool = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock) as mock_get_skill:
+        with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ) as mock_get_skill:
                         mock_get_skill.return_value = mock_skill_tool
 
                         await get_agent_tools(
@@ -432,14 +532,14 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=True,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         mock_get_skill.assert_called_once_with(
                             session=mock_session,
                             user_id=user_id,
-                            scope='user_vs_skills',
-                            pr=mock_pr
+                            scope="user_vs_skills",
+                            pr=mock_pr,
                         )
 
     async def test_only_user_vs_skills_enabled(self):
@@ -449,10 +549,15 @@ class TestGetAgentTools:
         mock_pr = MagicMock()
         mock_skill_tool = MagicMock()
 
-        with patch('tools.get_tools.get_mcp_tools', new_callable=AsyncMock):
-            with patch('tools.get_tools.get_web_search_tool', new_callable=AsyncMock):
-                with patch('tools.get_tools.get_vs_search_tool', new_callable=AsyncMock):
-                    with patch('tools.get_tools.get_user_skill_discovery_tool', new_callable=AsyncMock) as mock_get_skill:
+        with patch("tools.get_tools.get_mcp_tools", new_callable=AsyncMock):
+            with patch("tools.get_tools.get_web_search_tool", new_callable=AsyncMock):
+                with patch(
+                    "tools.get_tools.get_vs_search_tool", new_callable=AsyncMock
+                ):
+                    with patch(
+                        "tools.get_tools.get_user_skill_discovery_tool",
+                        new_callable=AsyncMock,
+                    ) as mock_get_skill:
                         mock_get_skill.return_value = mock_skill_tool
 
                         result = await get_agent_tools(
@@ -463,7 +568,7 @@ class TestGetAgentTools:
                             user_vs_memories=False,
                             user_vs_skills=True,
                             user_id=user_id,
-                            pr=mock_pr
+                            pr=mock_pr,
                         )
 
                         assert result == [mock_skill_tool]

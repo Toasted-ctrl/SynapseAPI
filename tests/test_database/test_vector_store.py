@@ -1,7 +1,9 @@
-import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock
-from database.vector_store import get_vector_store_settings, VectorStoreConfig
+
+import pytest
+
+from database.vector_store import VectorStoreConfig, get_vector_store_settings
 
 
 def _mock_session(*rows):
@@ -60,7 +62,9 @@ class TestGetVectorStoreSettings:
         """Test that ValueError is raised when collection is not found."""
         mock_session = _mock_session(None)
 
-        with pytest.raises(ValueError, match="Vector Store with name 'nonexistent' does not exist"):
+        with pytest.raises(
+            ValueError, match="Vector Store with name 'nonexistent' does not exist"
+        ):
             await get_vector_store_settings("nonexistent", mock_session)
 
     async def test_get_vector_store_settings_instance_not_found(self):
@@ -72,7 +76,9 @@ class TestGetVectorStoreSettings:
 
         mock_session = _mock_session(mock_collection, None)
 
-        with pytest.raises(ValueError, match=f"Vector Store instance with id '{vs_id}' does not exist"):
+        with pytest.raises(
+            ValueError, match=f"Vector Store instance with id '{vs_id}' does not exist"
+        ):
             await get_vector_store_settings("test_scope", mock_session)
 
     async def test_get_vector_store_settings_empty_filters(self):
@@ -146,13 +152,15 @@ class TestGetVectorStoreSettings:
 
         mock_session = _mock_session(mock_collection, mock_vs)
 
-        from database.schemas.vector_store_collections import VectorStoreCollectionT
         from database.schemas.vector_store import VectorStoreSettingsT
+        from database.schemas.vector_store_collections import VectorStoreCollectionT
 
         await get_vector_store_settings("test_scope", mock_session)
 
         # Verify query was called with the correct models
         assert mock_session.execute.await_count == 2
         calls = mock_session.execute.await_args_list
-        assert calls[0].args[0].column_descriptions[0]["entity"] is VectorStoreCollectionT
+        assert (
+            calls[0].args[0].column_descriptions[0]["entity"] is VectorStoreCollectionT
+        )
         assert calls[1].args[0].column_descriptions[0]["entity"] is VectorStoreSettingsT

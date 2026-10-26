@@ -1,16 +1,39 @@
-import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from tools.mcp_tools import get_mcp_tools
+import pytest
+
 from database.mcps import MCPConfig
+from tools.mcp_tools import get_mcp_tools, url_connection
 
 
-pytestmark = pytest.mark.asyncio
+class TestUrlConnection:
+    @pytest.mark.parametrize(
+        ("transport", "expected"),
+        [
+            ("sse", "sse"),
+            ("streamable_http", "streamable_http"),
+            ("streamable-http", "streamable_http"),
+            ("http", "streamable_http"),
+            ("websocket", "websocket"),
+        ],
+    )
+    def test_builds_connection(self, transport, expected):
+        """Test that supported transports (and aliases) map to the library's transport."""
+        assert url_connection(url="http://mcp", transport=transport) == {
+            "url": "http://mcp",
+            "transport": expected,
+        }
+
+    @pytest.mark.parametrize("transport", ["stdio", "", "custom-transport"])
+    def test_rejects_unsupported_transport(self, transport):
+        """Test that non URL based or unknown transports raise ValueError."""
+        with pytest.raises(ValueError, match="Unsupported MCP transport"):
+            url_connection(url="http://mcp", transport=transport)
 
 
+@pytest.mark.asyncio
 class TestGetMcpTools:
-
     async def test_returns_tools_from_multiple_mcps(self):
         """Test fetching tools from multiple MCP configurations."""
         mcp_id_1 = uuid.uuid4()
@@ -21,23 +44,37 @@ class TestGetMcpTools:
         mock_tool_2 = MagicMock()
         mock_tools = [mock_tool_1, mock_tool_2]
 
-        with patch('tools.mcp_tools.get_mcp_by_id') as mock_get_mcp:
-            with patch('tools.mcp_tools.MultiServerMCPClient') as mock_client_class:
+        with patch("tools.mcp_tools.get_mcp_by_id") as mock_get_mcp:
+            with patch("tools.mcp_tools.MultiServerMCPClient") as mock_client_class:
                 mock_get_mcp.side_effect = [
-                    MCPConfig(id=mcp_id_1, name='search', url='http://search', transport='stdio'),
-                    MCPConfig(id=mcp_id_2, name='files', url='http://files', transport='sse')
+                    MCPConfig(
+                        id=mcp_id_1,
+                        name="search",
+                        url="http://search",
+                        transport="streamable_http",
+                    ),
+                    MCPConfig(
+                        id=mcp_id_2, name="files", url="http://files", transport="sse"
+                    ),
                 ]
                 mock_client = MagicMock()
                 mock_client.get_tools = AsyncMock(return_value=mock_tools)
                 mock_client_class.return_value = mock_client
 
-                result = await get_mcp_tools(session=mock_session, mcp_ids=[mcp_id_1, mcp_id_2])
+                result = await get_mcp_tools(
+                    session=mock_session, mcp_ids=[mcp_id_1, mcp_id_2]
+                )
 
                 assert result == mock_tools
-                first_call_connections = mock_client_class.call_args_list[0][1]['connections']
+                first_call_connections = mock_client_class.call_args_list[0][1][
+                    "connections"
+                ]
                 assert first_call_connections == {
-                    'search': {'url': 'http://search/mcp', 'transport': 'stdio'},
-                    'files': {'url': 'http://files/mcp', 'transport': 'sse'}
+                    "search": {
+                        "url": "http://search/mcp",
+                        "transport": "streamable_http",
+                    },
+                    "files": {"url": "http://files/mcp", "transport": "sse"},
                 }
 
     async def test_returns_empty_tools_with_no_mcps(self):
@@ -45,7 +82,7 @@ class TestGetMcpTools:
         mock_session = MagicMock()
         mock_tools = []
 
-        with patch('tools.mcp_tools.MultiServerMCPClient') as mock_client_class:
+        with patch("tools.mcp_tools.MultiServerMCPClient") as mock_client_class:
             mock_client = MagicMock()
             mock_client.get_tools = AsyncMock(return_value=mock_tools)
             mock_client_class.return_value = mock_client
@@ -60,7 +97,7 @@ class TestGetMcpTools:
 
         mock_session = MagicMock()
 
-        with patch('tools.mcp_tools.get_mcp_by_id') as mock_get_mcp:
+        with patch("tools.mcp_tools.get_mcp_by_id") as mock_get_mcp:
             mock_get_mcp.side_effect = ValueError("MCP with ID")
 
             with pytest.raises(ValueError):
@@ -74,19 +111,33 @@ class TestGetMcpTools:
         mock_session = MagicMock()
         mock_tools = []
 
-        with patch('tools.mcp_tools.get_mcp_by_id') as mock_get_mcp:
-            with patch('tools.mcp_tools.MultiServerMCPClient') as mock_client_class:
-                with patch('tools.mcp_tools.asyncio.gather', wraps=__import__('asyncio').gather) as mock_gather:
+        with patch("tools.mcp_tools.get_mcp_by_id") as mock_get_mcp:
+            with patch("tools.mcp_tools.MultiServerMCPClient") as mock_client_class:
+                with patch(
+                    "tools.mcp_tools.asyncio.gather", wraps=__import__("asyncio").gather
+                ) as mock_gather:
                     mock_get_mcp.side_effect = [
-                        MCPConfig(id=mcp_id_1, name='search', url='http://search', transport='stdio'),
-                        MCPConfig(id=mcp_id_2, name='files', url='http://files', transport='sse')
+                        MCPConfig(
+                            id=mcp_id_1,
+                            name="search",
+                            url="http://search",
+                            transport="streamable_http",
+                        ),
+                        MCPConfig(
+                            id=mcp_id_2,
+                            name="files",
+                            url="http://files",
+                            transport="sse",
+                        ),
                     ]
 
                     mock_client = MagicMock()
                     mock_client.get_tools = AsyncMock(return_value=mock_tools)
                     mock_client_class.return_value = mock_client
 
-                    await get_mcp_tools(session=mock_session, mcp_ids=[mcp_id_1, mcp_id_2])
+                    await get_mcp_tools(
+                        session=mock_session, mcp_ids=[mcp_id_1, mcp_id_2]
+                    )
 
                     # asyncio.gather is called once for fetching MCPs by ID
                     assert mock_gather.call_count >= 1

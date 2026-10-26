@@ -1,14 +1,14 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
 
 from core.logging import get_logger
 from database.schemas.providers import ProvidersT
 from database.schemas.user_keys import UserKeysT
 from security.encryption import decrypt, encrypt
-
 
 log = get_logger()
 
@@ -24,23 +24,27 @@ class ProviderAPIKey:
 
 
 async def get_user_active_keys(
-    session: AsyncSession,
-    user_id: UUID
+    session: AsyncSession, user_id: UUID
 ) -> list[ProviderAPIKey]:
-    """Fetches all active Provider API keys for the user, 
+    """Fetches all active Provider API keys for the user,
     and returns them as a list containing ProviderAPIKey objects. If no keys are active,
     an empty list will be returned."""
-    keys = (await session.scalars(
-        select(UserKeysT)
-        .where(
-            UserKeysT.user_id == user_id,
-            UserKeysT.expiration_date > datetime.now(timezone.utc).replace(tzinfo=None)
+    keys = (
+        await session.scalars(
+            select(UserKeysT).where(
+                UserKeysT.user_id == user_id,
+                UserKeysT.expiration_date > datetime.now(UTC).replace(tzinfo=None),
+            )
         )
-    )).all()
+    ).all()
     if not keys:
-        log.debug(f"No active keys configured for User '{user_id}'. Returning empty list...")
+        log.debug(
+            f"No active keys configured for User '{user_id}'. Returning empty list..."
+        )
         return []
-    log.debug(f"Found {len(keys)} active key(s) for User '{user_id}'. Returning all keys...")
+    log.debug(
+        f"Found {len(keys)} active key(s) for User '{user_id}'. Returning all keys..."
+    )
     return [
         ProviderAPIKey(
             user_id=k.user_id,
@@ -48,7 +52,7 @@ async def get_user_active_keys(
             api_key_id=k.id,
             api_key=k.encrypted_api_key,
             api_key_short=k.api_key_short,
-            expiration_date=k.expiration_date
+            expiration_date=k.expiration_date,
         )
         for k in keys
     ]
@@ -59,83 +63,87 @@ async def get_or_store_key(
     api_key: str,
     user_id: UUID,
     provider_id: UUID,
-    expiry_days: int | None = None
+    expiry_days: int | None = None,
 ) -> ProviderAPIKey:
     """Adds a new API key to the database for the user.
-    Returns the existing key if the user already has a key configured for the 
-    indicated provider_id which is not yet expired. In this case, the key which was attempted to 
+    Returns the existing key if the user already has a key configured for the
+    indicated provider_id which is not yet expired. In this case, the key which was attempted to
     be added, will not be added. Will raise ValueError if
     the key is now allowed to be added (unknown or unsupported provider_id)."""
     existing = await session.scalar(
         select(UserKeysT)
         .where(
             UserKeysT.user_id == user_id,
-            UserKeysT.expiration_date > datetime.now(timezone.utc).replace(tzinfo=None),
-            UserKeysT.provider_id == provider_id
+            UserKeysT.expiration_date > datetime.now(UTC).replace(tzinfo=None),
+            UserKeysT.provider_id == provider_id,
         )
         .limit(1)
     )
     if existing:
-        log.info(f"Key with Provider '{existing.provider_id}' already exists for User '{existing.user_id}', returning existing key...")
+        log.info(
+            f"Key with Provider '{existing.provider_id}' already exists for User '{existing.user_id}', returning existing key..."
+        )
         return ProviderAPIKey(
             user_id=existing.user_id,
             api_key_id=existing.id,
             api_key=decrypt(existing.encrypted_api_key),
             api_key_short=existing.api_key_short,
             provider_id=existing.provider_id,
-            expiration_date=existing.expiration_date
+            expiration_date=existing.expiration_date,
         )
-    if await session.scalar(
-        select(func.count())
-        .select_from(ProvidersT)
-        .where(
-            ProvidersT.id == provider_id,
-            ProvidersT.requires_api_key == True
+    if (
+        await session.scalar(
+            select(func.count())
+            .select_from(ProvidersT)
+            .where(ProvidersT.id == provider_id, ProvidersT.requires_api_key)
         )
-    ) != 1:
-        raise ValueError(f"Provider '{provider_id}' does not require an API Key, or Provider with id '{provider_id}' does not exist...")
+        != 1
+    ):
+        raise ValueError(
+            f"Provider '{provider_id}' does not require an API Key, or Provider with id '{provider_id}' does not exist..."
+        )
     new_key = UserKeysT(
         user_id=user_id,
         encrypted_api_key=encrypt(api_key),
         api_key_short=api_key[:10],
-        provider_id=provider_id
+        provider_id=provider_id,
     )
     if expiry_days is not None:
-        new_key.expiration_date = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=expiry_days)
+        new_key.expiration_date = datetime.now(UTC).replace(tzinfo=None) + timedelta(
+            days=expiry_days
+        )
     session.add(new_key)
     await session.flush()
-    log.debug(f"New key added for User '{new_key.user_id}' for Provider '{new_key.provider_id}'...")
+    log.debug(
+        f"New key added for User '{new_key.user_id}' for Provider '{new_key.provider_id}'..."
+    )
     return ProviderAPIKey(
         user_id=new_key.user_id,
         api_key_id=new_key.id,
         api_key=decrypt(new_key.encrypted_api_key),
         api_key_short=new_key.api_key_short,
         provider_id=new_key.provider_id,
-        expiration_date=new_key.expiration_date
+        expiration_date=new_key.expiration_date,
     )
 
 
 class KeyNotFoundError(Exception):
     """Exception Class for if a User's key isn't found."""
-    pass
 
 
 async def delete_user_key_by_key_id(
-    session: AsyncSession,
-    key_id: UUID,
-    user_id: UUID
+    session: AsyncSession, key_id: UUID, user_id: UUID
 ) -> None:
     """Deletes a User's provider API key."""
-    existing = (await session.execute(
-        select(UserKeysT)
-        .where(
-            UserKeysT.id == key_id,
-            UserKeysT.user_id == user_id
+    existing = (
+        await session.execute(
+            select(UserKeysT).where(
+                UserKeysT.id == key_id, UserKeysT.user_id == user_id
+            )
         )
-    )).scalar_one_or_none()
+    ).scalar_one_or_none()
     if not existing:
         log.debug(f"Could not locate API key with id '{key_id}' for User '{user_id}'.")
         raise KeyNotFoundError(f"Could not locate API key with id '{key_id}'")
     await session.delete(existing)
     await session.flush()
-    return None
