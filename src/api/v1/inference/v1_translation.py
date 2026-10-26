@@ -29,13 +29,13 @@ async def post_translation_translategemma(
     session: AsyncSession = Depends(get_db_session),
 ) -> TranslationRead:
     try:
-        if (
-            not {payload.to_lang_code, payload.from_lang_code}
-            <= translategemma_languages()
-        ):
+        unsupported = {payload.from_lang_code, payload.to_lang_code}.difference(
+            translategemma_languages()
+        )
+        if unsupported:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported language: {payload.from_lang_code}",
+                detail=f"Unsupported language: {', '.join(sorted(unsupported))}",
             )
         if payload.prompt == "":
             raise HTTPException(
@@ -50,12 +50,14 @@ async def post_translation_translategemma(
 
         pr = await get_all_provider_configurations(session=session, user_id=user.id)
         provider: ProviderConfiguration = getattr(pr, p)
-        return get_translation_translategemma(
-            from_lang=payload.from_lang_code,
-            to_lang=payload.to_lang_code,
-            prompt=payload.prompt,
-            temperature=payload.parameters.temperature,
-            base_url=provider.base_url,
+        return TranslationRead(
+            **get_translation_translategemma(
+                from_lang=payload.from_lang_code,
+                to_lang=payload.to_lang_code,
+                prompt=payload.prompt,
+                temperature=payload.parameters.temperature,
+                base_url=provider.base_url,
+            )
         )
     except ConnectTimeout, ConnectError:
         raise HTTPException(
