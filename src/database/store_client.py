@@ -58,17 +58,15 @@ async def store_client(
         content=owner_email, key=config.BLIND_INDEX_HMAC_KEY
     )
 
-    if (
-        await session.scalar(
-            select(func.count())
-            .select_from(ClientsT)
-            .where(
-                ClientsT.blind_index_client_name == blind_index_client_name_value,
-                ClientsT.blind_index_owner_email == blind_index_owner_email_value,
-            )
+    existing_clients = await session.scalar(
+        select(func.count())
+        .select_from(ClientsT)
+        .where(
+            ClientsT.blind_index_client_name == blind_index_client_name_value,
+            ClientsT.blind_index_owner_email == blind_index_owner_email_value,
         )
-        > 0
-    ):
+    )
+    if existing_clients:
         raise ValueError(
             f"Client '{client_name}' with owner '{owner_email}' already exists, skipping..."
         )
