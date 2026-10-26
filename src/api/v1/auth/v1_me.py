@@ -22,13 +22,13 @@ async def auth_me(
     session: AsyncSession = Depends(get_db_session),
 ) -> AuthenticatedUserRead:
 
-    u: UserDetails = await get_user_by_user_id(session=session, user_id=user.id)
+    u: UserDetails | None = await get_user_by_user_id(session=session, user_id=user.id)
     if u is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
 
-    p: PersonDetails = await get_person_by_person_id(
+    p: PersonDetails | None = await get_person_by_person_id(
         session=session, person_id=u.person_id
     )
     if p is None:

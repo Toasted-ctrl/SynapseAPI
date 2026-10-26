@@ -4,11 +4,35 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from database.mcps import MCPConfig
-from tools.mcp_tools import get_mcp_tools
-
-pytestmark = pytest.mark.asyncio
+from tools.mcp_tools import get_mcp_tools, url_connection
 
 
+class TestUrlConnection:
+    @pytest.mark.parametrize(
+        ("transport", "expected"),
+        [
+            ("sse", "sse"),
+            ("streamable_http", "streamable_http"),
+            ("streamable-http", "streamable_http"),
+            ("http", "streamable_http"),
+            ("websocket", "websocket"),
+        ],
+    )
+    def test_builds_connection(self, transport, expected):
+        """Test that supported transports (and aliases) map to the library's transport."""
+        assert url_connection(url="http://mcp", transport=transport) == {
+            "url": "http://mcp",
+            "transport": expected,
+        }
+
+    @pytest.mark.parametrize("transport", ["stdio", "", "custom-transport"])
+    def test_rejects_unsupported_transport(self, transport):
+        """Test that non URL based or unknown transports raise ValueError."""
+        with pytest.raises(ValueError, match="Unsupported MCP transport"):
+            url_connection(url="http://mcp", transport=transport)
+
+
+@pytest.mark.asyncio
 class TestGetMcpTools:
     async def test_returns_tools_from_multiple_mcps(self):
         """Test fetching tools from multiple MCP configurations."""
@@ -27,7 +51,7 @@ class TestGetMcpTools:
                         id=mcp_id_1,
                         name="search",
                         url="http://search",
-                        transport="stdio",
+                        transport="streamable_http",
                     ),
                     MCPConfig(
                         id=mcp_id_2, name="files", url="http://files", transport="sse"
@@ -46,7 +70,10 @@ class TestGetMcpTools:
                     "connections"
                 ]
                 assert first_call_connections == {
-                    "search": {"url": "http://search/mcp", "transport": "stdio"},
+                    "search": {
+                        "url": "http://search/mcp",
+                        "transport": "streamable_http",
+                    },
                     "files": {"url": "http://files/mcp", "transport": "sse"},
                 }
 
@@ -94,7 +121,7 @@ class TestGetMcpTools:
                             id=mcp_id_1,
                             name="search",
                             url="http://search",
-                            transport="stdio",
+                            transport="streamable_http",
                         ),
                         MCPConfig(
                             id=mcp_id_2,

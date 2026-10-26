@@ -48,7 +48,7 @@ class TestGetWebSearchTool:
         with patch("tools.web_search.MultiServerMCPClient") as mock_client_class:
             with patch("tools.web_search.config") as mock_config:
                 mock_config.WEB_SEARCH_URL = "http://custom-search"
-                mock_config.WEB_SEARCH_TRANSPORT = "custom-transport"
+                mock_config.WEB_SEARCH_TRANSPORT = "streamable-http"
 
                 mock_client = MagicMock()
                 mock_client.get_tools = AsyncMock(return_value=[])
@@ -60,7 +60,7 @@ class TestGetWebSearchTool:
                     connections={
                         "Web Search": {
                             "url": "http://custom-search",
-                            "transport": "custom-transport",
+                            "transport": "streamable_http",
                         }
                     }
                 )
@@ -79,6 +79,18 @@ class TestGetWebSearchTool:
                 result = await get_web_search_tool()
 
                 assert result == []
+
+    async def test_raises_on_unsupported_transport(self):
+        """Test that an unsupported configured transport raises ValueError."""
+        with patch("tools.web_search.MultiServerMCPClient") as mock_client_class:
+            with patch("tools.web_search.config") as mock_config:
+                mock_config.WEB_SEARCH_URL = "http://web-search"
+                mock_config.WEB_SEARCH_TRANSPORT = ""
+
+                with pytest.raises(ValueError, match="Unsupported MCP transport"):
+                    await get_web_search_tool()
+
+                mock_client_class.assert_not_called()
 
     async def test_preserves_tool_order(self):
         """Test that tool filtering preserves the order of allowed tools."""
