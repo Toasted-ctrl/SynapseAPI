@@ -263,3 +263,29 @@ class TestSaveDocs:
                 metadatas=[{"user-id": "user1"}],
                 required_metadata=[],
             )
+
+    @pytest.mark.parametrize("metadatas", [None, []])
+    @patch("vs.save_docs._sanitize_metadata")
+    @patch("vs.save_docs._prep_docs_personal_data")
+    def test_without_metadatas_uses_empty_metadata_per_text(
+        self, mock_prep_docs, mock_sanitize, metadatas
+    ):
+        """Test that omitted or empty metadatas give each text its own empty metadata dict."""
+        mock_vs = MagicMock(spec=QdrantVectorStore)
+        mock_vs.add_documents.return_value = ["doc_id_1", "doc_id_2"]
+        mock_prep_docs.return_value = []
+
+        result = save_docs(
+            vector_store=mock_vs,
+            scope=VectorStoreScope.USER_FILES,
+            texts=["text one", "text two"],
+            metadatas=metadatas,
+        )
+
+        assert result == ["doc_id_1", "doc_id_2"]
+        mock_sanitize.assert_not_called()
+        mock_prep_docs.assert_called_once_with(
+            texts=["text one", "text two"], metadatas=[{}, {}]
+        )
+        passed = mock_prep_docs.call_args.kwargs["metadatas"]
+        assert passed[0] is not passed[1]

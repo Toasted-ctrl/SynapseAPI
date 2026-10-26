@@ -117,7 +117,9 @@ def save_docs(
                     )
 
     _texts = _normalize_texts(texts=texts)
-    _metadatas = _sanitize_metadata(metadatas=metadatas)
+    _metadatas = (
+        _sanitize_metadata(metadatas=metadatas) if metadatas else [{} for _ in _texts]
+    )
 
     match scope:
         case (

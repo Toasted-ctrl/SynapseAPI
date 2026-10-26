@@ -5,7 +5,7 @@ from database.session import get_db_session_ctx
 
 
 class ModelConfig:
-    def __init__(self):
+    def __init__(self) -> None:
         self._cache: TTLCache[str, list[str]] = TTLCache(maxsize=10, ttl=600)
 
     async def _get_models(self, expertise: str) -> list[str]:
