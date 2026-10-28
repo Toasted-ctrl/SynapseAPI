@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-25.
+> This document was last reviewed on 2026-10-28.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -36,7 +36,8 @@ SynapseAPI is a lightweight gateway that sits between your apps and the LLM prov
 
 **Agents**
 - Create, update and delete reusable agents with their own model, sampling parameters, system prompt and tools.
-- Talk to a stored agent by passing its `agent_id`, or configure a model and tools inline.
+- Create, update and delete decision agents that answer a set of choice, score and noul questions about a given state, using System One models.
+- Talk to a stored conversational agent by passing its `agent_id`, or configure a model and tools inline.
 - Conversations are kept in threads, so they can be continued later.
 
 **Knowledge & Memory**
@@ -111,9 +112,10 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 
 | Area         | Endpoints                                                                 | Purpose                                         |
 |--------------|---------------------------------------------------------------------------|-------------------------------------------------|
-| Conversation | `POST /conversation`, `POST /conversation/stream`                         | Chat with a model or a stored agent             |
-| Agents       | `GET /agents`                                                             | List your agents                                |
-| Playground   | `POST, GET, PUT, DELETE /playground/agent`                                | Create and manage a single agent                |
+| Conversation | `POST /conversation`, `POST /conversation/stream`                         | Chat with a model or a stored conversational agent |
+| Agents       | `GET /agents?agent_type=Conversational\|Decision`                         | List your agents of a type (default `Conversational`) |
+| Playground   | `POST, GET, PUT, DELETE /playground/agent`                                | Create and manage a single conversational agent |
+| Playground   | `POST, GET, PUT, DELETE /playground/decision-agent`                       | Create and manage a single decision agent       |
 | Auth         | `GET /auth/google/login`, `GET /auth/google/callback`, `GET /auth/me`     | Google login and current user                   |
 | Documents    | `GET, DELETE /documents`                                                  | List and remove uploaded documents              |
 | Skills       | `POST, GET, PATCH /skill`                                                 | Manage skills                                   |

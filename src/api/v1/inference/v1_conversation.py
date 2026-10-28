@@ -59,7 +59,6 @@ async def _resolve_settings(
             model=agent.model, system_prompt=agent.system_prompt, tools=agent.tools
         )
     if payload.model is None:
-        # Unreachable: ConversationCreate requires model when agent_id is omitted.
         raise ValueError("model is required when agent_id is omitted")
     return ConversationSettings(
         model=payload.model, system_prompt=None, tools=payload.tools or AgentTools()
