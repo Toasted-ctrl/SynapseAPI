@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -59,6 +59,34 @@ class ConversationRead(BaseModel):
         UUID, Field(description="ID of the thread the turn belongs to.")
     ]
     messages: Annotated[list, Field(description="Messages in the thread.")]
+
+
+# Decision models
+class DecisionCreate(BaseModel):
+    """Request body for a decision by a stored Decision Agent."""
+
+    agent_id: Annotated[UUID, Field(description="ID of the stored Decision Agent.")]
+    state: Annotated[
+        str | dict[str, str],
+        Field(
+            description=(
+                "The situation to decide on. A string if the Agent's state type is "
+                "'text', or an object of field name to value if it is 'fields'."
+            )
+        ),
+    ]
+
+
+class DecisionRead(BaseModel):
+    """A decision as returned by the API."""
+
+    agent_id: Annotated[UUID, Field(description="ID of the Decision Agent.")]
+    answers: Annotated[
+        dict[str, dict[str, Any]],
+        Field(
+            description="Answers keyed by question name, as returned by the provider."
+        ),
+    ]
 
 
 # Translation models

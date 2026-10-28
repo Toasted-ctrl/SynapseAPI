@@ -3,7 +3,7 @@ from enum import StrEnum
 
 from fastapi import HTTPException, status
 
-from api.v1.playground.models import AgentModel, AgentTools
+from api.v1.playground.models import AgentModel, AgentTools, DecisionAgentModel
 from core.model_types import model_config
 from database.providers import ProviderConfiguration, UserProviderRegistry
 
@@ -15,10 +15,16 @@ class ConversationSettings:
     tools: AgentTools
 
 
+@dataclass(frozen=True)
+class DecisionSettings:
+    model: DecisionAgentModel
+
+
 class ModelType(StrEnum):
     CHAT_COMPLETION = "chat_completion"
     VECTOR_EMBEDDING = "vector_embedding"
     TRANSLATION = "translation"
+    SYSTEM_ONE = "system_one"
 
 
 async def _validate_supported_model(model_name: str, model_type: ModelType) -> None:
@@ -29,6 +35,8 @@ async def _validate_supported_model(model_name: str, model_type: ModelType) -> N
             supported = await model_config.translation_models()
         case ModelType.VECTOR_EMBEDDING:
             supported = await model_config.vector_embedding_models()
+        case ModelType.SYSTEM_ONE:
+            supported = await model_config.system_one_models()
     if model_name not in supported:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -38,10 +46,10 @@ async def _validate_supported_model(model_name: str, model_type: ModelType) -> N
 
 async def get_provider_configuration(
     user_provider_registry: UserProviderRegistry,
-    settings: ConversationSettings,
+    settings: ConversationSettings | DecisionSettings,
     model_type: ModelType,
 ) -> ProviderConfiguration:
-    """Retrieves the ProviderConfiguration required for the conversation request.
+    """Retrieves the ProviderConfiguration required for the inference request.
     Raises an error if not configured, or the Provider does not support the model."""
     if settings.model.provider not in user_provider_registry.names:
         raise HTTPException(

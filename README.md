@@ -31,6 +31,7 @@ SynapseAPI is a lightweight gateway that sits between your apps and the LLM prov
 
 **Inference**
 - Chat completion (regular and streaming) through a single API, regardless of provider.
+- Decisions from a stored decision agent, by passing its `agent_id` and a state (currently Melious only).
 - Users can bring their own API keys for third-party providers.
 - Local Ollama instances can be added as a provider.
 
