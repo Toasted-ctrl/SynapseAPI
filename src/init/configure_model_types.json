@@ -150,5 +150,9 @@
         "qweng3guard-gen-0.6b",
         "qweng3guard-gen-8b",
         "mistral-moderation-2603"
+    ],
+    "system_one": [
+        "clef-flash",
+        "clef"
     ]
 }
