@@ -57,7 +57,7 @@ def _render_state(state: str | dict[str, str], config: DecisionState) -> str:
 
 @router.post(
     "/inference/decision",
-    tags=["Decision"],
+    tags=["Inference / Decision"],
     response_model=DecisionRead,
     description="Invokes a non-streaming decision from a stored decision agent.",
     responses={

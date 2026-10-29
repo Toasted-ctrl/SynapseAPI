@@ -19,7 +19,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/playground/agent",
+    "/playground/conversational-agent",
     tags=["Playground"],
     description="Creates and stores a new agent configuration.",
     response_model=AgentConfigurationRead,

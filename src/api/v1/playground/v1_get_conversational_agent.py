@@ -3,11 +3,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.playground.models import AgentType
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.logging import get_logger
-from database.agent import AgentNotFoundError, delete_agent_configuration
+from database.agent import AgentNotFoundError, get_agent_configuration
 from database.session import get_db_session
+
+from .models import AgentConfigurationRead
 
 log = get_logger()
 
@@ -15,28 +16,26 @@ log = get_logger()
 router = APIRouter()
 
 
-@router.delete(
-    "/playground/agent",
+@router.get(
+    "/playground/conversational-agent",
     tags=["Playground"],
-    description="Deletes an agent configuration.",
-    status_code=status.HTTP_204_NO_CONTENT,
+    description="Returns an agent configuration.",
+    response_model=AgentConfigurationRead,
+    status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
             "description": "Agent does not exist or is not owned by the user."
         }
     },
 )
-async def delete_agent(
+async def get_agent(
     agent_id: UUID,
     session: AsyncSession = Depends(get_db_session),
     user: VerifiedUser = Depends(depends_verify_user),
-) -> None:
+) -> AgentConfigurationRead:
     try:
-        await delete_agent_configuration(
-            session=session,
-            user_id=user.id,
-            agent_id=agent_id,
-            agent_type=AgentType.CONVERSATIONAL,
+        return await get_agent_configuration(
+            session=session, user_id=user.id, agent_id=agent_id
         )
     except AgentNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -44,5 +43,5 @@ async def delete_agent(
         log.exception(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unexpected error occurred while deleting the agent.",
+            detail="Unexpected error occurred while retrieving the agent.",
         )

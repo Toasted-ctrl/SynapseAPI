@@ -17,7 +17,7 @@ router = APIRouter()
 
 
 @router.put(
-    "/playground/agent",
+    "/playground/conversational-agent",
     tags=["Playground"],
     description="Updates the configuration of an Agent.",
     response_model=AgentConfigurationRead,

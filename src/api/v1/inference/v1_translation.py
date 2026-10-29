@@ -15,11 +15,11 @@ from providers.ollama.translategemma import (
 
 from .models import TranslationCreate, TranslationLanguagesRead, TranslationRead
 
-router = APIRouter(tags=["Translation"])
+router = APIRouter(tags=["Inference / Translation"])
 
 
 @router.post(
-    "/translation/translategemma",
+    "/inference/translation/translategemma",
     description="Invokes a translation from translategemma.",
     response_model=TranslationRead,
 )
@@ -67,14 +67,20 @@ async def post_translation_translategemma(
 
 
 @router.get(
-    "/translation/translategemma",
+    "/inference/translation",
     response_model=TranslationLanguagesRead,
-    description="Returns languages supported by translategemma.",
+    description="Returns languages supported by the indicated model.",
 )
 @cache(expire=300, key_builder=cache_key_builder)
-async def get_languages_translategemma(
+async def get_supported_languages(
     request: Request,
     response: Response,
+    model_name: str = "translategemma",
     user: VerifiedUser = Depends(depends_verify_user),
 ) -> TranslationLanguagesRead:
+    if model_name != "translategemma":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unsupported translation model: {model_name}",
+        )
     return TranslationLanguagesRead(languages=translategemma_languages())

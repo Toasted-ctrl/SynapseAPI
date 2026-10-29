@@ -12,8 +12,8 @@ router = APIRouter()
 
 
 @router.get(
-    "/auth/me",
-    tags=["Auth"],
+    "/user/me",
+    tags=["User"],
     response_model=AuthenticatedUserRead,
     description="Returns the user_id, first name, last name and email address of the authenticated User.",
 )

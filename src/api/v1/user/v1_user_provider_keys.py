@@ -22,8 +22,8 @@ router = APIRouter()
 
 
 @router.post(
-    path="/settings/user/keys",
-    tags=["User Settings"],
+    path="/user/provider-keys",
+    tags=["User"],
     description="Stores and returns a User provided Provider API Key.",
     response_model=UserKeyRead,
 )
@@ -56,8 +56,8 @@ async def store_user_key(
 
 
 @router.delete(
-    path="/settings/user/keys",
-    tags=["User Settings"],
+    path="/user/provider-keys",
+    tags=["User"],
     description="Deletes a User's provider API key.",
     status_code=status.HTTP_204_NO_CONTENT,
 )
