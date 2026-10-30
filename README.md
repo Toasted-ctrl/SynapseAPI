@@ -115,7 +115,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 |--------------|---------------------------------------------------------------------------|-------------------------------------------------|
 | Inference    | `POST /inference/conversation`, `POST /inference/conversation/stream`     | Chat with a model or a stored conversational agent |
 | Inference    | `POST /inference/decision`                                                | Get a decision from a stored decision agent     |
-| Inference    | `POST /inference/translation/translategemma`, `GET /inference/translation` | Translate text and list supported languages    |
+| Inference    | `POST, GET /inference/translation`                                        | Translate text and list supported languages     |
 | Inference    | `POST /inference/vector-embedding`                                        | Get a vector embedding of a prompt              |
 | Agents       | `GET /agents?agent_type=Conversational\|Decision`                         | List your agents of a type (default `Conversational`) |
 | Playground   | `POST, GET, PUT, DELETE /playground/conversational-agent`                 | Create and manage a single conversational agent |

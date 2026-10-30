@@ -90,18 +90,41 @@ class DecisionRead(BaseModel):
 
 
 # Translation models
+class TranslationModel(BaseModel):
+    """The model used to translate the prompt."""
+
+    provider: Annotated[
+        str, Field(min_length=1, description="Model provider, e.g. 'Ollama-1'.")
+    ]
+    name: Annotated[
+        str,
+        Field(
+            min_length=1,
+            description="Provider-specific translation model name, e.g. 'translategemma:latest'.",
+        ),
+    ]
+
+
 class TranslationParameters(BaseModel):
-    temperature: float = 0.1
+    temperature: Annotated[
+        float, Field(ge=0.0, le=2.0, description="Controls randomness of the output.")
+    ] = 0.1
 
 
 class TranslationCreate(BaseModel):
-    from_lang_code: str
-    to_lang_code: str
-    parameters: TranslationParameters
-    prompt: str
+    model: Annotated[
+        TranslationModel, Field(description="The translation model to use.")
+    ]
+    from_lang_code: Annotated[str, Field(description="Language code of the prompt.")]
+    to_lang_code: Annotated[str, Field(description="Language code to translate to.")]
+    parameters: Annotated[
+        TranslationParameters, Field(description="Sampling parameters for the model.")
+    ] = Field(default_factory=TranslationParameters)
+    prompt: Annotated[str, Field(min_length=1, description="The text to translate.")]
 
 
 class TranslationRead(BaseModel):
+    model: TranslationModel
     prompt: str
     translation: str
     from_lang_code: str
