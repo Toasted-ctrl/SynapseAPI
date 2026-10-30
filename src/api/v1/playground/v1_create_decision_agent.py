@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.post(
     "/playground/decision-agent",
-    tags=["Playground"],
+    tags=["Playground / Decision Agent"],
     description="Creates and stores a new decision agent configuration.",
     response_model=DecisionAgentConfigurationRead,
     status_code=status.HTTP_201_CREATED,

@@ -18,7 +18,7 @@ router = APIRouter()
 
 @router.get(
     "/playground/decision-agent",
-    tags=["Playground"],
+    tags=["Playground / Decision Agent"],
     description="Returns a decision agent configuration.",
     response_model=DecisionAgentConfigurationRead,
     status_code=status.HTTP_200_OK,

@@ -17,8 +17,8 @@ router = APIRouter()
 
 @router.delete(
     "/playground/conversational-agent",
-    tags=["Playground"],
-    description="Deletes an agent configuration.",
+    tags=["Playground / Conversational Agent"],
+    description="Deletes a Conversational Agent's configuration.",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         status.HTTP_404_NOT_FOUND: {
@@ -26,7 +26,7 @@ router = APIRouter()
         }
     },
 )
-async def delete_agent(
+async def delete_conversational_agent(
     agent_id: UUID,
     session: AsyncSession = Depends(get_db_session),
     user: VerifiedUser = Depends(depends_verify_user),

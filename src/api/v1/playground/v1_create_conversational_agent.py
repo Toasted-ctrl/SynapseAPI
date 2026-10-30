@@ -20,8 +20,8 @@ router = APIRouter()
 
 @router.post(
     "/playground/conversational-agent",
-    tags=["Playground"],
-    description="Creates and stores a new agent configuration.",
+    tags=["Playground / Conversational Agent"],
+    description="Creates and stores a new Conversational Agent's configuration.",
     response_model=AgentConfigurationRead,
     status_code=status.HTTP_201_CREATED,
     responses={
@@ -33,7 +33,7 @@ router = APIRouter()
         },
     },
 )
-async def create_agent(
+async def create_conversational_agent(
     payload: AgentConfigurationCreate,
     session: AsyncSession = Depends(get_db_session),
     user: VerifiedUser = Depends(depends_verify_user),
