@@ -13,7 +13,7 @@ router = APIRouter()
     "/root",
     response_model=RootRead,
     description=("Retrieves API name, version and contact/maintainer information."),
-    tags=["Root"],
+    tags=["Default"],
 )
 @cache(expire=300, key_builder=cache_key_builder)
 async def get_root(request: Request, response: Response) -> RootRead:
