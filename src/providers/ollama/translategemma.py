@@ -39,13 +39,18 @@ def get_language(lang_code: str) -> str:
     return data["supported"][lang_code]
 
 
-def get_translation_translategemma(
-    from_lang: str, to_lang: str, prompt: str, temperature: float, base_url: str
-) -> dict:
-    """Invokes a translation from translategemma 4B"""
+async def get_translation_translategemma(
+    model: str,
+    from_lang: str,
+    to_lang: str,
+    prompt: str,
+    temperature: float,
+    base_url: str,
+) -> str:
+    """Invokes a translation from translategemma and returns the translated text."""
 
     llm = ChatOllama(
-        model="translategemma:latest",
+        model=model,
         temperature=temperature,
         base_url=base_url,
         disable_streaming=True,
@@ -62,11 +67,6 @@ def get_translation_translategemma(
     Produce only the {to_language} translation, without any additional explanations or commentary.
     Please translate the following {from_language} text into {to_language}:\n\n{prompt}"""
 
-    translation = llm.invoke(instruction)
+    translation = await llm.ainvoke(instruction)
 
-    return {
-        "prompt": prompt,
-        "translation": translation.content,
-        "from_lang_code": from_lang,
-        "to_lang_code": to_lang,
-    }
+    return translation.text

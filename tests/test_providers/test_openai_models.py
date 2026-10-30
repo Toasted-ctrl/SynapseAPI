@@ -31,6 +31,7 @@ class TestGetModels:
             mock.vector_embedding_models = AsyncMock(
                 return_value=["text-embedding-3-small", "text-embedding-3-large"]
             )
+            mock.system_one_models = AsyncMock(return_value=["gpt-3.5-turbo"])
             yield mock
 
     @pytest.fixture
@@ -96,6 +97,9 @@ class TestGetModels:
             "text-embedding-3-large",
         }
 
+        # Check system_one models
+        assert result["system_one"] == ["gpt-3.5-turbo"]
+
     @pytest.mark.asyncio
     async def test_authentication_error_returns_empty_lists(
         self, mock_decrypt, mock_openai_client
@@ -120,6 +124,7 @@ class TestGetModels:
             "chat_completion": [],
             "translation": [],
             "vector_embedding": [],
+            "system_one": [],
         }
 
     @pytest.mark.asyncio
@@ -144,6 +149,7 @@ class TestGetModels:
             "chat_completion": [],
             "translation": [],
             "vector_embedding": [],
+            "system_one": [],
         }
 
     @pytest.mark.asyncio
@@ -156,6 +162,7 @@ class TestGetModels:
         )
         mock_model_config.translation_models = AsyncMock(return_value=["model-c"])
         mock_model_config.vector_embedding_models = AsyncMock(return_value=["model-d"])
+        mock_model_config.system_one_models = AsyncMock(return_value=["model-e"])
 
         mock_client = AsyncMock()
         mock_models_response = MagicMock()
@@ -178,6 +185,7 @@ class TestGetModels:
             "chat_completion": [],
             "translation": [],
             "vector_embedding": [],
+            "system_one": [],
         }
 
     @pytest.mark.asyncio
@@ -192,6 +200,9 @@ class TestGetModels:
             return_value=["model-not-in-api"]
         )
         mock_model_config.vector_embedding_models = AsyncMock(
+            return_value=["model-not-in-api"]
+        )
+        mock_model_config.system_one_models = AsyncMock(
             return_value=["model-not-in-api"]
         )
 
@@ -214,16 +225,18 @@ class TestGetModels:
         assert result["chat_completion"] == ["gpt-4"]
         assert result["translation"] == []
         assert result["vector_embedding"] == []
+        assert result["system_one"] == []
 
     @pytest.mark.asyncio
     async def test_all_models_match_all_categories(
         self, mock_decrypt, mock_model_config, mock_openai_client
     ):
-        """Test when a model appears in all three categories."""
+        """Test when a model appears in all categories."""
         model_name = "gpt-4"
         mock_model_config.chat_completion_models = AsyncMock(return_value=[model_name])
         mock_model_config.translation_models = AsyncMock(return_value=[model_name])
         mock_model_config.vector_embedding_models = AsyncMock(return_value=[model_name])
+        mock_model_config.system_one_models = AsyncMock(return_value=[model_name])
 
         mock_client = AsyncMock()
         mock_models_response = MagicMock()
@@ -241,6 +254,7 @@ class TestGetModels:
         assert result["chat_completion"] == [model_name]
         assert result["translation"] == [model_name]
         assert result["vector_embedding"] == [model_name]
+        assert result["system_one"] == [model_name]
 
     @pytest.mark.asyncio
     async def test_decrypt_called_with_correct_parameter(
@@ -351,6 +365,7 @@ class TestGetModels:
         )
         mock_model_config.translation_models = AsyncMock(return_value=[])
         mock_model_config.vector_embedding_models = AsyncMock(return_value=[])
+        mock_model_config.system_one_models = AsyncMock(return_value=[])
 
         mock_client = AsyncMock()
         mock_models_response = MagicMock()
@@ -396,6 +411,7 @@ class TestGetModels:
             "chat_completion",
             "translation",
             "vector_embedding",
+            "system_one",
         }
         assert all(isinstance(v, list) for v in result.values())
 
@@ -449,6 +465,7 @@ class TestGetModels:
                 "chat_completion": [],
                 "translation": [],
                 "vector_embedding": [],
+                "system_one": [],
             }
             mock_openai_client.assert_called_once_with(
                 api_key="test-openai-api-key", base_url=base_url

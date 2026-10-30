@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.playground.models import AgentType
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.logging import get_logger
 from database.agent import AgentNotFoundError, delete_agent_configuration
@@ -15,7 +16,7 @@ router = APIRouter()
 
 
 @router.delete(
-    "/playground/agent",
+    "/playground/conversational-agent",
     tags=["Playground"],
     description="Deletes an agent configuration.",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -32,7 +33,10 @@ async def delete_agent(
 ) -> None:
     try:
         await delete_agent_configuration(
-            session=session, user_id=user.id, agent_id=agent_id
+            session=session,
+            user_id=user.id,
+            agent_id=agent_id,
+            agent_type=AgentType.CONVERSATIONAL,
         )
     except AgentNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

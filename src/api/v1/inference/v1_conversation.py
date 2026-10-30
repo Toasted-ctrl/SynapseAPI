@@ -59,7 +59,6 @@ async def _resolve_settings(
             model=agent.model, system_prompt=agent.system_prompt, tools=agent.tools
         )
     if payload.model is None:
-        # Unreachable: ConversationCreate requires model when agent_id is omitted.
         raise ValueError("model is required when agent_id is omitted")
     return ConversationSettings(
         model=payload.model, system_prompt=None, tools=payload.tools or AgentTools()
@@ -67,8 +66,8 @@ async def _resolve_settings(
 
 
 @router.post(
-    "/conversation",
-    tags=["Conversation"],
+    "/inference/conversation",
+    tags=["Inference / Conversation"],
     response_model=ConversationRead,
     description=(
         "Invokes a non-streaming response from an agent (by agent_id), or a "
@@ -143,8 +142,8 @@ async def conversation(
 
 
 @router.post(
-    "/conversation/stream",
-    tags=["Conversation"],
+    "/inference/conversation/stream",
+    tags=["Inference / Conversation"],
     response_class=StreamingResponse,
     description=(
         "Invokes a streaming response from an agent (by agent_id), or a "

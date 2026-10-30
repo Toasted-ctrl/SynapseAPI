@@ -18,21 +18,6 @@ class DocumentDeleteRead(BaseModel):
     is_deleted: bool
 
 
-class VectorEmbeddingCreate(BaseModel):
-    prompt: str
-    provider: str
-    model: str
-    dimensions: int | None = None
-
-
-class VectorEmbeddingRead(BaseModel):
-    prompt: str
-    provider: str
-    model: str
-    dimensions: int
-    embedding: list[float]
-
-
 class Metadata(BaseModel):
     document_name: str
 

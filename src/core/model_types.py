@@ -29,5 +29,8 @@ class ModelConfig:
     async def translation_models(self) -> list[str]:
         return await self._get_models("translation")
 
+    async def system_one_models(self) -> list[str]:
+        return await self._get_models("system_one")
+
 
 model_config = ModelConfig()

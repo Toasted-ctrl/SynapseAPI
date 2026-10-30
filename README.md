@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-25.
+> This document was last reviewed on 2026-10-29.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -31,12 +31,14 @@ SynapseAPI is a lightweight gateway that sits between your apps and the LLM prov
 
 **Inference**
 - Chat completion (regular and streaming) through a single API, regardless of provider.
+- Decisions from a stored decision agent, by passing its `agent_id` and a state (currently Melious only).
 - Users can bring their own API keys for third-party providers.
 - Local Ollama instances can be added as a provider.
 
 **Agents**
 - Create, update and delete reusable agents with their own model, sampling parameters, system prompt and tools.
-- Talk to a stored agent by passing its `agent_id`, or configure a model and tools inline.
+- Create, update and delete decision agents that answer a set of choice, score and noul questions about a given state, using System One models.
+- Talk to a stored conversational agent by passing its `agent_id`, or configure a model and tools inline.
 - Conversations are kept in threads, so they can be continued later.
 
 **Knowledge & Memory**
@@ -95,7 +97,7 @@ curl http://localhost:8000/api/v1/status
 Send a prompt to a model. Authentication uses either a session cookie (after Google login) or an `X-API-Key` header:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/conversation \
+curl -X POST http://localhost:8000/api/v1/inference/conversation \
   -H "Content-Type: application/json" \
   -H "X-API-Key: <your-api-key>" \
   -d '{
@@ -111,24 +113,26 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 
 | Area         | Endpoints                                                                 | Purpose                                         |
 |--------------|---------------------------------------------------------------------------|-------------------------------------------------|
-| Conversation | `POST /conversation`, `POST /conversation/stream`                         | Chat with a model or a stored agent             |
-| Agents       | `GET /agents`                                                             | List your agents                                |
-| Playground   | `POST, GET, PUT, DELETE /playground/agent`                                | Create and manage a single agent                |
-| Auth         | `GET /auth/google/login`, `GET /auth/google/callback`, `GET /auth/me`     | Google login and current user                   |
+| Inference    | `POST /inference/conversation`, `POST /inference/conversation/stream`     | Chat with a model or a stored conversational agent |
+| Inference    | `POST /inference/decision`                                                | Get a decision from a stored decision agent     |
+| Inference    | `POST, GET /inference/translation`                                        | Translate text and list supported languages     |
+| Inference    | `POST /inference/vector-embedding`                                        | Get a vector embedding of a prompt              |
+| Agents       | `GET /agents?agent_type=Conversational\|Decision`                         | List your agents of a type (default `Conversational`) |
+| Playground   | `POST, GET, PUT, DELETE /playground/conversational-agent`                 | Create and manage a single conversational agent |
+| Playground   | `POST, GET, PUT, DELETE /playground/decision-agent`                       | Create and manage a single decision agent       |
+| Auth         | `GET /auth/google/login`, `GET /auth/google/callback`                     | Google login                                    |
+| User         | `GET /user/me`, `POST, DELETE /user/provider-keys`                        | Current user and your own provider API keys     |
 | Documents    | `GET, DELETE /documents`                                                  | List and remove uploaded documents              |
-| Skills       | `POST, GET, PATCH /skill`                                                 | Manage skills                                   |
-| Vectors      | `POST /vector_embedding`, `POST /vector_store/add`, `POST /vector_store/search` | Embed, store and search documents         |
+| Skills       | `POST, GET, PUT /documents/skill`                                         | Manage skills                                   |
+| Vectors      | `POST /documents/vector-store/add`, `POST /documents/vector-store/search` | Store and search documents                      |
 | Providers    | `GET /providers/models`, `GET /providers/models/sampling`, `GET /providers/configuration` | Available models and provider setup |
 | Tools        | `GET /tools/mcp`                                                          | Available MCP servers                           |
-| Translation  | `POST, GET /translation/translategemma`                                   | Translation via TranslateGemma                  |
-| Settings     | `POST, DELETE /settings/user/keys`                                        | Store your own provider API keys                |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |
 
 ## Roadmap
 
 ### Short Term
 - [ ] HMAC hashing and verification for each path.
-- [ ] Locate which server currently supports TranslateGemma: check internal servers first, then external ones, and prefer internal since it is free of charge.
 - [ ] Add reranker to Vector Search.
 
 ### Long Term

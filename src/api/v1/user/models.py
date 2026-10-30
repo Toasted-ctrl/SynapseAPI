@@ -15,3 +15,10 @@ class UserKeyRead(BaseModel):
     provider: str
     api_key_short: str
     expires: datetime
+
+
+class AuthenticatedUserRead(BaseModel):
+    user_id: UUID
+    first_name: str
+    last_name: str
+    email: str

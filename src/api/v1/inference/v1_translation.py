@@ -5,59 +5,84 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.cache import cache_key_builder
-from database.providers import ProviderConfiguration
+from database.providers import (
+    ProviderConfiguration,
+    UserProviderRegistry,
+    get_all_provider_configurations,
+)
 from database.session import get_db_session
-from providers.models import get_all_provider_configurations
+from providers.dataclasses import LangChainCon
 from providers.ollama.translategemma import (
     get_translation_translategemma,
     translategemma_languages,
 )
 
+from .helpers import ModelType, TranslationSettings, get_provider_configuration
 from .models import TranslationCreate, TranslationLanguagesRead, TranslationRead
 
-router = APIRouter(tags=["Translation"])
+router = APIRouter(tags=["Inference / Translation"])
+
+
+def _is_translategemma(model_name: str) -> bool:
+    """Translategemma is currently the only translation model with an implementation."""
+    return model_name.split(":")[0] == "translategemma"
 
 
 @router.post(
-    "/translation/translategemma",
-    description="Invokes a translation from translategemma.",
+    "/inference/translation",
+    description="Translates the prompt with the requested translation model.",
     response_model=TranslationRead,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "Unsupported language, or the provider is not configured or does not support the model."
+        },
+        status.HTTP_404_NOT_FOUND: {"description": "Provider or model does not exist."},
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Unable to connect to provider."
+        },
+    },
 )
-async def post_translation_translategemma(
+async def get_translation(
     payload: TranslationCreate,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session),
 ) -> TranslationRead:
-    try:
-        unsupported = {payload.from_lang_code, payload.to_lang_code}.difference(
-            translategemma_languages()
+    upr: UserProviderRegistry = await get_all_provider_configurations(
+        session=session, user_id=user.id
+    )
+
+    prov: ProviderConfiguration = await get_provider_configuration(
+        user_provider_registry=upr,
+        settings=TranslationSettings(model=payload.model),
+        model_type=ModelType.TRANSLATION,
+    )
+
+    if (
+        not _is_translategemma(payload.model.name)
+        or prov.langchain_con != LangChainCon.OLLAMA
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Translation with '{payload.model.name}' is not supported by provider: {prov.name}",
         )
-        if unsupported:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported language: {', '.join(sorted(unsupported))}",
-            )
-        if payload.prompt == "":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Prompt must not be None",
-            )
-        p = "Ollama-1"
 
-        # Default provider for now? Perhaps we can fetch all providers by
-        # Langchain con instead? Cache the result?
-        # TODO: Find a way to pinpoint the correct provider.
+    unsupported = {payload.from_lang_code, payload.to_lang_code}.difference(
+        translategemma_languages()
+    )
+    if unsupported:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported language: {', '.join(sorted(unsupported))}",
+        )
 
-        pr = await get_all_provider_configurations(session=session, user_id=user.id)
-        provider: ProviderConfiguration = getattr(pr, p)
-        return TranslationRead(
-            **get_translation_translategemma(
-                from_lang=payload.from_lang_code,
-                to_lang=payload.to_lang_code,
-                prompt=payload.prompt,
-                temperature=payload.parameters.temperature,
-                base_url=provider.base_url,
-            )
+    try:
+        translated = await get_translation_translategemma(
+            model=payload.model.name,
+            from_lang=payload.from_lang_code,
+            to_lang=payload.to_lang_code,
+            prompt=payload.prompt,
+            temperature=payload.parameters.temperature,
+            base_url=prov.base_url,
         )
     except ConnectTimeout, ConnectError:
         raise HTTPException(
@@ -65,16 +90,30 @@ async def post_translation_translategemma(
             detail="Unable to connect to Provider",
         )
 
+    return TranslationRead(
+        model=payload.model,
+        prompt=payload.prompt,
+        translation=translated,
+        from_lang_code=payload.from_lang_code,
+        to_lang_code=payload.to_lang_code,
+    )
+
 
 @router.get(
-    "/translation/translategemma",
+    "/inference/translation",
     response_model=TranslationLanguagesRead,
-    description="Returns languages supported by translategemma.",
+    description="Returns languages supported by the indicated model.",
 )
 @cache(expire=300, key_builder=cache_key_builder)
-async def get_languages_translategemma(
+async def get_supported_languages(
     request: Request,
     response: Response,
+    model_name: str = "translategemma:latest",
     user: VerifiedUser = Depends(depends_verify_user),
 ) -> TranslationLanguagesRead:
+    if not _is_translategemma(model_name):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unsupported translation model: {model_name}",
+        )
     return TranslationLanguagesRead(languages=translategemma_languages())

@@ -440,6 +440,18 @@ async def create_preconfigured_models() -> None:
                 nm = ModelsT(name=model, expertise="vector_embedding")
                 session.add(nm)
 
+        system_one_models = data.get("system_one")
+        for model in system_one_models:
+            exists = (
+                await session.scalars(select(ModelsT).where(ModelsT.name == model))
+            ).all()
+            if not exists:
+                log.info(
+                    f"Model '{model}' does not exist in ModelsT with expertise 'system_one', adding ..."
+                )
+                nm = ModelsT(name=model, expertise="system_one")
+                session.add(nm)
+
 
 async def create_preconfigured_mcps() -> None:
     """Adds all preconfigured mcps to the MCPsT table."""

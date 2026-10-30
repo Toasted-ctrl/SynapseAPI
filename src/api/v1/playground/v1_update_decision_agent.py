@@ -7,38 +7,38 @@ from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from database.agent import (
     AgentNameTakenError,
     AgentNotFoundError,
-    update_agent_configuration,
+    update_decision_agent_configuration,
 )
 from database.session import get_db_session
 
-from .models import AgentConfigurationCreate, AgentConfigurationRead
+from .models import DecisionAgentConfigurationCreate, DecisionAgentConfigurationRead
 
 router = APIRouter()
 
 
 @router.put(
-    "/playground/agent",
+    "/playground/decision-agent",
     tags=["Playground"],
-    description="Updates the configuration of an Agent.",
-    response_model=AgentConfigurationRead,
+    description="Updates the configuration of a Decision Agent.",
+    response_model=DecisionAgentConfigurationRead,
 )
-async def update_agent(
-    payload: AgentConfigurationCreate,
+async def update_decision_agent(
+    payload: DecisionAgentConfigurationCreate,
     agent_id: UUID,
     user: VerifiedUser = Depends(depends_verify_user),
     session: AsyncSession = Depends(get_db_session),
-) -> AgentConfigurationRead:
+) -> DecisionAgentConfigurationRead:
     try:
-        return await update_agent_configuration(
+        return await update_decision_agent_configuration(
             session=session, user_id=user.id, agent_id=agent_id, config=payload
         )
     except AgentNameTakenError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Unable to update agent '{agent_id}': {e!s}",
+            detail=f"Unable to update decision agent '{agent_id}': {e!s}",
         )
     except AgentNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Unable to update agent '{agent_id}': {e!s}",
+            detail=f"Unable to update decision agent '{agent_id}': {e!s}",
         )

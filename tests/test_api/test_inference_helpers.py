@@ -7,8 +7,10 @@ from fastapi import HTTPException, status
 from api.v1.inference.helpers import (
     ConversationSettings,
     ModelType,
+    VectorEmbeddingSettings,
     get_provider_configuration,
 )
+from api.v1.inference.models import VectorEmbeddingModel
 from api.v1.playground.models import AgentModel, AgentTools
 from database.providers import ProviderConfiguration, UserProviderRegistry
 from providers.dataclasses import LangChainCon
@@ -101,6 +103,18 @@ async def test_provider_missing_api_key_returns_400(registry, models):
     assert "anthropic" in exc.value.detail
     for mock in models.values():
         mock.assert_not_awaited()
+
+
+async def test_accepts_vector_embedding_settings(registry, models):
+    prov = await get_provider_configuration(
+        user_provider_registry=registry,
+        settings=VectorEmbeddingSettings(
+            model=VectorEmbeddingModel(provider="ollama", name="nomic-embed-text")
+        ),
+        model_type=ModelType.VECTOR_EMBEDDING,
+    )
+    assert prov is registry["ollama"]
+    models["vector_embedding"].assert_awaited_once()
 
 
 @pytest.mark.parametrize(

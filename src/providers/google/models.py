@@ -23,11 +23,18 @@ async def get_models(encrypted_api_key: str) -> dict[str, list[str]]:
             cc_models = await model_config.chat_completion_models()
             tm_models = await model_config.translation_models()
             ve_models = await model_config.vector_embedding_models()
+            so_models = await model_config.system_one_models()
             return {
                 "chat_completion": [model for model in models if model in cc_models],
                 "translation": [model for model in models if model in tm_models],
                 "vector_embedding": [model for model in models if model in ve_models],
+                "system_one": [model for model in models if model in so_models],
             }
     except ClientError as e:
         log.debug(f"Could not retrieve Google models: {e}")
-        return {"chat_completion": [], "translation": [], "vector_embedding": []}
+        return {
+            "chat_completion": [],
+            "translation": [],
+            "vector_embedding": [],
+            "system_one": [],
+        }

@@ -12,6 +12,7 @@ MODELS = {
     "chat_completion": ["llama3", "gpt-5"],
     "vector_embedding": ["nomic-embed-text"],
     "translation": ["translategemma"],
+    "system_one": ["gpt-5"],
 }
 
 
@@ -47,6 +48,7 @@ class TestModelConfig:
             ("chat_completion_models", "chat_completion"),
             ("vector_embedding_models", "vector_embedding"),
             ("translation_models", "translation"),
+            ("system_one_models", "system_one"),
         ],
     )
     async def test_returns_models_for_expertise(self, db, method, expertise):
