@@ -116,14 +116,15 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Inference    | `POST /inference/conversation`, `POST /inference/conversation/stream`     | Chat with a model or a stored conversational agent |
 | Inference    | `POST /inference/decision`                                                | Get a decision from a stored decision agent     |
 | Inference    | `POST /inference/translation/translategemma`, `GET /inference/translation` | Translate text and list supported languages    |
+| Inference    | `POST /inference/vector-embedding`                                        | Get a vector embedding of a prompt              |
 | Agents       | `GET /agents?agent_type=Conversational\|Decision`                         | List your agents of a type (default `Conversational`) |
 | Playground   | `POST, GET, PUT, DELETE /playground/conversational-agent`                 | Create and manage a single conversational agent |
 | Playground   | `POST, GET, PUT, DELETE /playground/decision-agent`                       | Create and manage a single decision agent       |
 | Auth         | `GET /auth/google/login`, `GET /auth/google/callback`                     | Google login                                    |
 | User         | `GET /user/me`, `POST, DELETE /user/provider-keys`                        | Current user and your own provider API keys     |
 | Documents    | `GET, DELETE /documents`                                                  | List and remove uploaded documents              |
-| Skills       | `POST, GET, PUT /skill`                                                   | Manage skills                                   |
-| Vectors      | `POST /vector_embedding`, `POST /vector_store/add`, `POST /vector_store/search` | Embed, store and search documents         |
+| Skills       | `POST, GET, PUT /documents/skill`                                         | Manage skills                                   |
+| Vectors      | `POST /documents/vector-store/add`, `POST /documents/vector-store/search` | Store and search documents                      |
 | Providers    | `GET /providers/models`, `GET /providers/models/sampling`, `GET /providers/configuration` | Available models and provider setup |
 | Tools        | `GET /tools/mcp`                                                          | Available MCP servers                           |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |

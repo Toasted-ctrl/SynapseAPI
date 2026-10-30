@@ -29,8 +29,8 @@ log = get_logger()
 
 
 @router.post(
-    path="/vector_store/add",
-    tags=["Vector Store / Embedding"],
+    path="/documents/vector-store/add",
+    tags=["Documents / Vector Store"],
     description="Store (a) document(s) in the specified Vector Store based on scope.",
     response_model=VectorStoreDocumentsRead,
 )
@@ -108,8 +108,8 @@ async def store_semantic_document(
 
 
 @router.post(
-    path="/vector_store/search",
-    tags=["Vector Store / Embedding"],
+    path="/documents/vector-store/search",
+    tags=["Documents / Vector Store"],
     description="Search (a) document(s) in the specified Vector Store scope.",
 )
 async def search_document(

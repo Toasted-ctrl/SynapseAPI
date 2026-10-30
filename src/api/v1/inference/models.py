@@ -110,3 +110,36 @@ class TranslationRead(BaseModel):
 
 class TranslationLanguagesRead(BaseModel):
     languages: list[str]
+
+
+# Vector embedding models
+class VectorEmbeddingModel(BaseModel):
+    """The embedding model used to generate the vector embedding."""
+
+    provider: Annotated[
+        str, Field(min_length=1, description="Model provider, e.g. 'openai'.")
+    ]
+    name: Annotated[
+        str, Field(min_length=1, description="Provider-specific embedding model name.")
+    ]
+
+
+class VectorEmbeddingCreate(BaseModel):
+    model: Annotated[
+        VectorEmbeddingModel, Field(description="The embedding model to use.")
+    ]
+    prompt: Annotated[str, Field(min_length=1, description="The text to embed.")]
+    dimensions: Annotated[
+        int | None,
+        Field(
+            gt=0,
+            description="Requested embedding size. Uses the model's default if omitted; not all providers support it.",
+        ),
+    ] = None
+
+
+class VectorEmbeddingRead(BaseModel):
+    model: VectorEmbeddingModel
+    prompt: str
+    dimensions: int
+    embedding: list[float]

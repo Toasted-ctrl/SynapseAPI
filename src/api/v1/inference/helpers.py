@@ -3,6 +3,7 @@ from enum import StrEnum
 
 from fastapi import HTTPException, status
 
+from api.v1.inference.models import VectorEmbeddingModel
 from api.v1.playground.models import AgentModel, AgentTools, DecisionAgentModel
 from core.model_types import model_config
 from database.providers import ProviderConfiguration, UserProviderRegistry
@@ -18,6 +19,11 @@ class ConversationSettings:
 @dataclass(frozen=True)
 class DecisionSettings:
     model: DecisionAgentModel
+
+
+@dataclass(frozen=True)
+class VectorEmbeddingSettings:
+    model: VectorEmbeddingModel
 
 
 class ModelType(StrEnum):
@@ -46,7 +52,7 @@ async def _validate_supported_model(model_name: str, model_type: ModelType) -> N
 
 async def get_provider_configuration(
     user_provider_registry: UserProviderRegistry,
-    settings: ConversationSettings | DecisionSettings,
+    settings: ConversationSettings | DecisionSettings | VectorEmbeddingSettings,
     model_type: ModelType,
 ) -> ProviderConfiguration:
     """Retrieves the ProviderConfiguration required for the inference request.
