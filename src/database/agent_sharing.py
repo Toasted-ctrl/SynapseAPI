@@ -1,9 +1,12 @@
+import uuid
+from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.playground.models import AgentType
 from core.logging import get_logger
 
 from .agent_ownership import (
@@ -117,3 +120,40 @@ async def delete_shared_agent_from_user(
     await session.delete(sharing)
     await session.flush()
     return True
+
+
+@dataclass(frozen=True)
+class AgentConfigurationLimited:
+    id: uuid.UUID
+    name: str
+
+
+async def list_agents_shared_with_user(
+    session: AsyncSession,
+    user_id: UUID,
+    agent_type: AgentType | None = None,
+) -> list[AgentConfigurationLimited]:
+    """Returns all agents shared with the given user (id and name).
+
+    Args:
+        session: The async database session
+        user_id: The user ID to find shared agents for
+        agent_type: Optional filter for agent type ('Conversational' or 'Decision')
+
+    Returns:
+        List of AgentConfigurationLimited objects (id and name) ordered by name
+    """
+    query = (
+        select(AgentConfigT.id, AgentConfigT.name)
+        .join(AgentSharingT, AgentSharingT.agent_id == AgentConfigT.id)
+        .where(AgentSharingT.user_id == user_id)
+    )
+
+    if agent_type is not None:
+        query = query.where(AgentConfigT.agent_type == agent_type)
+
+    query = query.order_by(AgentConfigT.name)
+
+    agents = (await session.execute(query)).all()
+    log.debug(f"Found {len(agents)} agents shared with user '{user_id}'")
+    return [AgentConfigurationLimited(id=agent.id, name=agent.name) for agent in agents]
