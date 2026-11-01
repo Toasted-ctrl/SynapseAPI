@@ -38,8 +38,8 @@ log = get_logger()
 
 async def share_agent_with_user_id(
     owner_user_id: UUID, agent_id: UUID, share_with_user_id: UUID, session: AsyncSession
-) -> AgentSharingT:
-    """Shares an Agent with a User."""
+) -> UUID:
+    """Shares an Agent with a User. Returns the agent_id on success."""
     agent = (
         await session.execute(
             select(AgentConfigT).where(
@@ -75,7 +75,7 @@ async def share_agent_with_user_id(
         )
 
     await session.refresh(share)
-    return share
+    return agent_id
 
 
 async def get_shared_users_by_agent_id(

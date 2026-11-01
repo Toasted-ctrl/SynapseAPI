@@ -12,7 +12,6 @@ from database.agent_sharing import (
     get_shared_users_by_agent_id,
     share_agent_with_user_id,
 )
-from database.schemas.agent_sharing import AgentSharingT
 
 pytestmark = pytest.mark.asyncio
 
@@ -57,10 +56,7 @@ class TestShareAgentWithUserId:
             session=session,
         )
 
-        assert isinstance(result, AgentSharingT)
-        assert result.agent_id == agent_id
-        assert result.user_id == share_with_user_id
-        assert result.owner_user_id == owner_user_id
+        assert result == agent_id
         session.add.assert_called_once()
         session.flush.assert_awaited_once()
         session.refresh.assert_awaited_once()

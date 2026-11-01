@@ -120,6 +120,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Agents       | `GET /agents?agent_type=Conversational\|Decision`                         | List your agents of a type (default `Conversational`) |
 | Playground   | `POST, GET, PUT, DELETE /playground/conversational-agent`                 | Create and manage a single conversational agent |
 | Playground   | `POST, GET, PUT, DELETE /playground/decision-agent`                       | Create and manage a single decision agent       |
+| Share        | `GET, POST /share/agent`                                                 | List users with agent access and share agents   |
 | Auth         | `GET /auth/google/login`, `GET /auth/google/callback`                     | Google login                                    |
 | User         | `GET /user/me`, `POST, DELETE /user/provider-keys`                        | Current user and your own provider API keys     |
 | Documents    | `GET, DELETE /documents`                                                  | List and remove uploaded documents              |
@@ -139,7 +140,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 - [x] Agent building (create, read, update, delete).
 - [ ] Support for more login providers.
 - [ ] Log conversation IDs and history in a conversation table.
-- [ ] Share agents with other users.
+- [x] Share agents with other users.
 - [ ] Add encryption for checkpointer blob storage.
 
 ## Contributing
