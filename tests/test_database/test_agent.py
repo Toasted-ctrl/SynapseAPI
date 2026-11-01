@@ -26,6 +26,7 @@ from database.agent import (
     AgentNameTakenError,
     AgentNotFoundError,
     AgentReferenceError,
+    _get_agent_row_shared_with_user,
     create_agent_configuration,
     create_decision_agent_configuration,
     delete_agent_configuration,
@@ -354,7 +355,7 @@ class TestGetAgentConfiguration:
             )
 
     async def test_raises_when_not_found(self):
-        session = make_session(execute=[None])
+        session = make_session(execute=[None, None])
 
         with pytest.raises(AgentNotFoundError, match="Could not locate agent"):
             await get_agent_configuration(
@@ -638,7 +639,7 @@ class TestGetDecisionAgentConfiguration:
         ]
 
     async def test_raises_when_not_found(self):
-        session = make_session(execute=[None])
+        session = make_session(execute=[None, None])
 
         with pytest.raises(AgentNotFoundError, match="Could not locate agent"):
             await get_decision_agent_configuration(
@@ -686,3 +687,171 @@ class TestUpdateDecisionAgentConfiguration:
                 agent_id=uuid.uuid4(),
                 config=make_decision_config(),
             )
+
+
+@pytest.mark.asyncio
+class TestGetAgentRowSharedWithUser:
+    """Tests for _get_agent_row_shared_with_user function."""
+
+    def _agent_row(
+        self,
+        owner_user_id: uuid.UUID,
+        agent_id: uuid.UUID = None,
+        agent_type: str = "Conversational",
+    ):
+        """Helper to create an AgentConfigT row for testing."""
+        return row(
+            id=agent_id or uuid.uuid4(),
+            owner_user_id=owner_user_id,
+            name="Test Agent",
+            description="Test Description",
+            settings={},
+            agent_type=agent_type,
+        )
+
+    def _sharing_row(
+        self, agent_id: uuid.UUID, user_id: uuid.UUID, owner_user_id: uuid.UUID
+    ):
+        """Helper to create an AgentSharingT row for testing."""
+        return row(
+            id=uuid.uuid4(),
+            agent_id=agent_id,
+            user_id=user_id,
+            owner_user_id=owner_user_id,
+        )
+
+    async def test_returns_agent_when_shared(self):
+        owner_user_id = uuid.uuid4()
+        agent_id = uuid.uuid4()
+        shared_user_id = uuid.uuid4()
+
+        agent = self._agent_row(owner_user_id, agent_id)
+        # The JOIN query will return the agent row when there's a matching sharing record
+        # We need to mock the joined result
+        # For the JOIN query, execute returns the joined result
+        session = make_session(execute=[agent])
+
+        result = await _get_agent_row_shared_with_user(
+            session=session,
+            user_id=shared_user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.CONVERSATIONAL,
+        )
+
+        assert result == agent
+        # Verify the query filters on agent_id, agent_type, and shared user_id
+        bound = params(session.execute.await_args)
+        assert agent_id in bound
+        assert AgentType.CONVERSATIONAL in bound
+        assert shared_user_id in bound
+
+    async def test_raises_when_not_shared(self):
+        agent_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        # No matching sharing record, so execute returns None
+        session = make_session(execute=[None])
+
+        with pytest.raises(AgentNotFoundError, match="Could not locate agent"):
+            await _get_agent_row_shared_with_user(
+                session=session,
+                user_id=user_id,
+                agent_id=agent_id,
+                agent_type=AgentType.CONVERSATIONAL,
+            )
+
+    async def test_raises_when_agent_not_found(self):
+        agent_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        # No agent exists with this ID
+        session = make_session(execute=[None])
+
+        with pytest.raises(AgentNotFoundError, match="Could not locate agent"):
+            await _get_agent_row_shared_with_user(
+                session=session,
+                user_id=user_id,
+                agent_id=agent_id,
+                agent_type=AgentType.CONVERSATIONAL,
+            )
+
+    async def test_filters_by_agent_type(self):
+        owner_user_id = uuid.uuid4()
+        agent_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        agent = self._agent_row(owner_user_id, agent_id, agent_type="Decision")
+        session = make_session(execute=[agent])
+
+        result = await _get_agent_row_shared_with_user(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.DECISION,
+        )
+
+        assert result == agent
+        bound = params(session.execute.await_args)
+        assert AgentType.DECISION in bound
+
+    async def test_filters_by_user_id(self):
+        owner_user_id = uuid.uuid4()
+        agent_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        agent = self._agent_row(owner_user_id, agent_id)
+        session = make_session(execute=[agent])
+
+        await _get_agent_row_shared_with_user(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.CONVERSATIONAL,
+        )
+
+        bound = params(session.execute.await_args)
+        assert user_id in bound
+
+    async def test_single_query_to_database(self):
+        """Verify the function makes only one query (no TOCTOU vulnerability)."""
+        owner_user_id = uuid.uuid4()
+        agent_id = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        agent = self._agent_row(owner_user_id, agent_id)
+        session = make_session(execute=[agent])
+
+        await _get_agent_row_shared_with_user(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.CONVERSATIONAL,
+        )
+
+        # Should only have one execute call (the JOIN query)
+        assert session.execute.await_count == 1
+
+    async def test_returns_correct_agent_when_multiple_exist(self):
+        """Test that the function correctly filters when multiple agents exist."""
+        owner_user_id = uuid.uuid4()
+        agent_id_1 = uuid.uuid4()
+        agent_id_2 = uuid.uuid4()
+        user_id = uuid.uuid4()
+
+        # We only want agent_id_1 to be returned
+        agent_1 = self._agent_row(owner_user_id, agent_id_1)
+        # agent_2 has the same type but different ID - should not be returned
+
+        # The mock returns the first matching row
+        session = make_session(execute=[agent_1])
+
+        result = await _get_agent_row_shared_with_user(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id_1,
+            agent_type=AgentType.CONVERSATIONAL,
+        )
+
+        assert result == agent_1
+        assert result.id == agent_id_1
+        assert result.id != agent_id_2

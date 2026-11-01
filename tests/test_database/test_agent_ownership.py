@@ -6,6 +6,7 @@ from db_helpers import make_session, params
 from database.agent_ownership import (
     AgentNotFoundOrNotOwnedError,
     ensure_agent_owned_by_user,
+    is_agent_owned_by_user,
 )
 
 pytestmark = pytest.mark.asyncio

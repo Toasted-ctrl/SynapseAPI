@@ -20,6 +20,7 @@ from database.mcps import get_mcp_by_id
 from security.encryption import decrypt, encrypt
 
 from .schemas.agent_config import AgentConfigT
+from .schemas.agent_sharing import AgentSharingT
 
 log = get_logger()
 
@@ -157,6 +158,31 @@ async def _get_agent_row(
     return agent
 
 
+async def _get_agent_row_shared_with_user(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+    agent_id: uuid.UUID,
+    agent_type: AgentType,
+) -> AgentConfigT:
+    agent = (
+        await session.execute(
+            select(AgentConfigT)
+            .join(AgentSharingT, AgentSharingT.agent_id == AgentConfigT.id)
+            .where(
+                AgentConfigT.id == agent_id,
+                AgentConfigT.agent_type == agent_type,
+                AgentSharingT.user_id == user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not agent:
+        log.debug(
+            f"Could not locate '{agent_type}' agent with id '{agent_id}' shared with user '{user_id}'"
+        )
+        raise AgentNotFoundError(f"Could not locate agent with id '{agent_id}'")
+    return agent
+
+
 async def _ensure_name_available(
     session: AsyncSession, user_id: uuid.UUID, name: str
 ) -> None:
@@ -212,9 +238,6 @@ async def _update_agent_row(
     log.debug(f"Updated '{agent.agent_type}' agent '{agent.id}'")
 
 
-# Conversational Agents
-
-
 async def create_agent_configuration(
     session: AsyncSession, user_id: uuid.UUID, config: AgentConfigurationCreate
 ) -> AgentConfigurationRead:
@@ -236,13 +259,21 @@ async def create_agent_configuration(
 async def get_agent_configuration(
     session: AsyncSession, user_id: uuid.UUID, agent_id: uuid.UUID
 ) -> AgentConfigurationRead:
-    """Fetches a Conversational agent configuration owned by the user."""
-    agent = await _get_agent_row(
-        session=session,
-        user_id=user_id,
-        agent_id=agent_id,
-        agent_type=AgentType.CONVERSATIONAL,
-    )
+    """Fetches a Conversational agent configuration owned by or shared with the user."""
+    try:
+        agent = await _get_agent_row(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.CONVERSATIONAL,
+        )
+    except AgentNotFoundError:
+        agent = await _get_agent_row_shared_with_user(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.CONVERSATIONAL,
+        )
     # Check encryption status from raw settings BEFORE decryption
     is_encrypted = agent.settings.get("__encrypted__", False)
     return _to_configuration(agent, is_encrypted=is_encrypted)
@@ -275,9 +306,6 @@ async def update_agent_configuration(
     return _to_configuration(agent, is_encrypted=True)
 
 
-# Decision Agents
-
-
 async def create_decision_agent_configuration(
     session: AsyncSession, user_id: uuid.UUID, config: DecisionAgentConfigurationCreate
 ) -> DecisionAgentConfigurationRead:
@@ -297,13 +325,21 @@ async def create_decision_agent_configuration(
 async def get_decision_agent_configuration(
     session: AsyncSession, user_id: uuid.UUID, agent_id: uuid.UUID
 ) -> DecisionAgentConfigurationRead:
-    """Fetches a Decision agent configuration owned by the user."""
-    agent = await _get_agent_row(
-        session=session,
-        user_id=user_id,
-        agent_id=agent_id,
-        agent_type=AgentType.DECISION,
-    )
+    """Fetches a Decision agent configuration owned by or shared with the user."""
+    try:
+        agent = await _get_agent_row(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.DECISION,
+        )
+    except AgentNotFoundError:
+        agent = await _get_agent_row_shared_with_user(
+            session=session,
+            user_id=user_id,
+            agent_id=agent_id,
+            agent_type=AgentType.DECISION,
+        )
     return _to_decision_configuration(agent)
 
 
@@ -330,9 +366,6 @@ async def update_decision_agent_configuration(
         settings=_to_settings(config, DECISION_SETTINGS_VERSION),
     )
     return _to_decision_configuration(agent)
-
-
-# All Agents
 
 
 @dataclass(frozen=True)
