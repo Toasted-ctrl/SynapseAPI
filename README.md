@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-29.
+> This document was last reviewed on 2026-11-03.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -120,7 +120,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Agents       | `GET /agents?agent_type=Conversational\|Decision`                         | List your agents of a type (default `Conversational`) |
 | Playground   | `POST, GET, PUT, DELETE /playground/conversational-agent`                 | Create and manage a single conversational agent |
 | Playground   | `POST, GET, PUT, DELETE /playground/decision-agent`                       | Create and manage a single decision agent       |
-| Share        | `GET, POST /share/agent`                                                 | List users with agent access and share agents   |
+| Share        | `GET, POST, DELETE /share/agent`                                          | List, grant, and revoke users' access to your agents |
 | Auth         | `GET /auth/google/login`, `GET /auth/google/callback`                     | Google login                                    |
 | User         | `GET /user/me`, `POST, DELETE /user/provider-keys`                        | Current user and your own provider API keys     |
 | Documents    | `GET, DELETE /documents`                                                  | List and remove uploaded documents              |
@@ -144,18 +144,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 - [ ] Add encryption for checkpointer blob storage.
 
 ## Contributing
-PRs are welcome! Before opening one, please make sure the tests pass and the code is linted and formatted with [ruff](https://docs.astral.sh/ruff/):
-
-```bash
-uv sync --group dev
-uv run pytest
-uv run ruff check --fix .   # lint and auto-fix what it can
-uv run ruff format .        # format code
-```
-
-Ruff is configured in `pyproject.toml`. Please fix any remaining `ruff check` errors by hand before opening the PR.
-
-For security issues, please see [SECURITY.md](SECURITY.md) instead of opening a public issue.
+PRs are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, linting, and code conventions. For security issues, please see [SECURITY.md](SECURITY.md).
 
 ## License
 MIT. See [LICENSE](LICENSE).
