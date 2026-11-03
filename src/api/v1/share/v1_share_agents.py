@@ -9,6 +9,7 @@ from database.agent_sharing import (
     AgentNotFoundOrNotOwnedError,
     AgentOwnedByUserError,
     UserNotFoundError,
+    delete_shared_agent_from_user,
     get_shared_users_by_agent_id,
     share_agent_with_user_id,
 )
@@ -89,4 +90,28 @@ async def share_agent(
         )
 
 
-# TODO: Add function to revoke sharing access.
+@router.delete(
+    "/share/agent",
+    tags=["Share"],
+    description="Removes access to an Agent for a User.",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def revoke_agent_access(
+    agent_id: UUID,
+    revoke_from_user_id: UUID,
+    user: VerifiedUser = Depends(depends_verify_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> None:
+    try:
+        await delete_shared_agent_from_user(
+            owner_user_id=user.id,
+            shared_with_user_id=revoke_from_user_id,
+            agent_id=agent_id,
+            session=session,
+        )
+        return None
+    except AgentNotFoundOrNotOwnedError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Agent {agent_id} not found, not owned by user {user.id}, or not shared with user {revoke_from_user_id}",
+        )

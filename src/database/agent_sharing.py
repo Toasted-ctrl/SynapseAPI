@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.v1.playground.models import AgentType
 from core.logging import get_logger
 
+from .agent import AgentConfigurationLimited
 from .agent_ownership import (
     AgentNotFoundOrNotOwnedError,
     ensure_agent_owned_by_user,
@@ -120,12 +121,6 @@ async def delete_shared_agent_from_user(
     await session.delete(sharing)
     await session.flush()
     return True
-
-
-@dataclass(frozen=True)
-class AgentConfigurationLimited:
-    id: uuid.UUID
-    name: str
 
 
 async def list_agents_shared_with_user(

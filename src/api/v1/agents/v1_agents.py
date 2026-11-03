@@ -21,9 +21,7 @@ router = APIRouter()
     response_model=AgentListRead,
     tags=["Agents"],
     responses={
-        status.HTTP_400_BAD_REQUEST: {
-            "description": "Invalid access_type parameter."
-        },
+        status.HTTP_400_BAD_REQUEST: {"description": "Invalid access_type parameter."},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
             "description": "Unexpected error occurred while retrieving agents."
         },
