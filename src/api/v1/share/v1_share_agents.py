@@ -113,5 +113,5 @@ async def revoke_agent_access(
     except AgentNotFoundOrNotOwnedError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Agent {agent_id} not found, not owned by user {user.id}, or not shared with user {revoke_from_user_id}",
+            detail=f"Agent {agent_id} not found or not owned by user {user.id}",
         )
