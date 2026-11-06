@@ -1,14 +1,12 @@
 # Security
 
 > [!NOTE]
-> This document was last reviewed on 2026-10-23.
+> This document was last reviewed on 2026-11-06.
 
 ## Authentication
 This API supports authentication via:
 - **API keys**
 - **Google OAuth**
-
-JWT-based authentication is planned for a future release.
 
 ## Hashing
 Client API keys for connection to the API are stored as a hash, as well as Session IDs.
@@ -30,6 +28,9 @@ The following fields are encrypted at rest (the encryption key is only known to 
 - Agent configurations
 - Skills
 
+### Messages
+- Checkpointer (blob storage)
+
 ### Planned
 - Stored messages
 
@@ -38,10 +39,7 @@ All information is processed locally and is **not** shared with third parties, w
 The User's message history is encrypted at rest.
 
 ## MCP
-MCPs are curerntly available to ALL users, regardless of access type or platform. In a later version I'll introduce MCP management so admins can decide whom should have access to which MCP.
-
-## Checkpointers
-Checkpointer data is currently NOT encrypted at rest, this will be addressed in a future release.
+MCPs are currently available to ALL users, regardless of access type or platform. In a later version I'll introduce MCP management so admins can decide whom should have access to which MCP.
 
 ## Session Management
 Sessions are handled server side. Authentication through frontend applications will store a cookie with session_id after logging in.

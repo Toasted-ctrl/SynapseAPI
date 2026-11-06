@@ -138,10 +138,9 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 
 ### Long Term
 - [x] Agent building (create, read, update, delete).
-- [ ] Support for more login providers.
 - [ ] Log conversation IDs and history in a conversation table.
 - [x] Share agents with other users.
-- [ ] Add encryption for checkpointer blob storage.
+- [ ] Create websocket endpoint for CLI integration.
 
 ## Contributing
 PRs are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, linting, and code conventions. For security issues, please see [SECURITY.md](SECURITY.md).

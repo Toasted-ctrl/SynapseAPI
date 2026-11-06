@@ -21,6 +21,7 @@ from database.providers import (
 )
 from database.session import get_db_session
 from providers.agent import build_agent_model, run_agent, stream_agent
+from security.encryption import EncryptedSerializer
 from tools.get_tools import get_agent_tools
 
 from .helpers import ConversationSettings, ModelType, get_provider_configuration
@@ -30,6 +31,9 @@ router = APIRouter()
 
 
 log = get_logger()
+
+
+encryption_serde = EncryptedSerializer(key=config.CHECKPOINT_ENCRYPTION_KEY)
 
 
 def _serialize_event(event):
@@ -110,7 +114,7 @@ async def conversation(
         )
 
         async with AsyncPostgresSaver.from_conn_string(
-            conn_string=config.PG_CHECKPOINTER_URL
+            conn_string=config.PG_CHECKPOINTER_URL, serde=encryption_serde
         ) as checkpointer:
             agent = build_agent_model(
                 langchain_con=prov.langchain_con,
@@ -190,7 +194,7 @@ async def conversation_stream(
             # reported to the client as a final 'error' event instead of an HTTP status.
             try:
                 async with AsyncPostgresSaver.from_conn_string(
-                    conn_string=config.PG_CHECKPOINTER_URL
+                    conn_string=config.PG_CHECKPOINTER_URL, serde=encryption_serde
                 ) as checkpointer:
                     agent = build_agent_model(
                         langchain_con=prov.langchain_con,

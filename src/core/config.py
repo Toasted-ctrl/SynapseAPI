@@ -41,6 +41,7 @@ class Config(BaseSettings):
     PG_PORT: int
 
     ENCRYPTION_KEY: str = ""
+    CHECKPOINT_ENCRYPTION_KEY: str = ""
 
     BLIND_INDEX_KEY: str = ""
 
