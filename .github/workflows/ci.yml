@@ -37,7 +37,7 @@ jobs:
 
       # 6. Run Mypy
       - name: Run Mypy
-        run: uv run mypy .
+        run: uv run mypy src
 
       # 7. Run Pytest
       - name: Run Pytest
