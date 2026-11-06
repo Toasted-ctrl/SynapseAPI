@@ -1,5 +1,5 @@
-import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,7 @@ log = get_logger()
 
 @dataclass(frozen=True)
 class MCP:
-    id: uuid.UUID
+    id: UUID
     name: str
 
 
@@ -26,13 +26,13 @@ async def get_mcps(session: AsyncSession) -> list[MCP]:
 
 @dataclass(frozen=True)
 class MCPConfig:
-    id: uuid.UUID
     name: str
     url: str
     transport: str
+    id: UUID | None = None
 
 
-async def get_mcp_by_id(session: AsyncSession, mcp_id: uuid.UUID) -> MCPConfig:
+async def get_mcp_by_id(session: AsyncSession, mcp_id: UUID) -> MCPConfig:
     """Returns MCP configuration based on MCP id."""
     mcp = (
         await session.execute(select(MCPsT).where(MCPsT.id == mcp_id))
@@ -41,3 +41,12 @@ async def get_mcp_by_id(session: AsyncSession, mcp_id: uuid.UUID) -> MCPConfig:
         raise ValueError(f"MCP with ID {mcp_id} does not exist.")
     log.debug(f"Fetched configuration details for MCP '{mcp_id}'.")
     return MCPConfig(id=mcp.id, name=mcp.name, url=mcp.url, transport=mcp.transport)
+
+
+async def insert_mcp(session: AsyncSession, mcp_config: MCPConfig) -> UUID:
+    mcp = MCPsT(**asdict(mcp_config))
+    session.add(mcp)
+    await session.flush()
+    await session.refresh(mcp)
+    log.debug(f"Inserted MCP {mcp.id}")
+    return mcp.id
