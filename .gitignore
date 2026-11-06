@@ -7,9 +7,6 @@ venv/
 # CACHE
 __pycache__/
 
-# UV Lockfile
-uv.lock
-
 # Config files
 configure_init_providers.json
 configure_init_clients.json

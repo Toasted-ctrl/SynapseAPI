@@ -18,11 +18,11 @@ router = APIRouter()
 
 @router.put(
     "/playground/conversational-agent",
-    tags=["Playground"],
-    description="Updates the configuration of an Agent.",
+    tags=["Playground / Conversational Agent"],
+    description="Updates the configuration of a Conversational Agent.",
     response_model=AgentConfigurationRead,
 )
-async def update_agent(
+async def update_conversational_agent(
     payload: AgentConfigurationCreate,
     agent_id: UUID,
     user: VerifiedUser = Depends(depends_verify_user),

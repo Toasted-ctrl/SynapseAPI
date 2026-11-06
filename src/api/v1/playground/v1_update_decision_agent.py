@@ -18,7 +18,7 @@ router = APIRouter()
 
 @router.put(
     "/playground/decision-agent",
-    tags=["Playground"],
+    tags=["Playground / Decision Agent"],
     description="Updates the configuration of a Decision Agent.",
     response_model=DecisionAgentConfigurationRead,
 )

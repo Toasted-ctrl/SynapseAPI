@@ -41,6 +41,7 @@ class Config(BaseSettings):
     PG_PORT: int
 
     ENCRYPTION_KEY: str = ""
+    CHECKPOINT_ENCRYPTION_KEY: str = ""
 
     BLIND_INDEX_KEY: str = ""
 
@@ -89,8 +90,8 @@ class Config(BaseSettings):
             print(
                 f"Google Login disabled. Skipping environment variables: {' ,'.join(sorted(self._SKIP_GOOGLE_ENV_VARS))} ..."
             )
-            unset - self._SKIP_GOOGLE_ENV_VARS
-            unpopulated - self._SKIP_GOOGLE_ENV_VARS
+            unset -= self._SKIP_GOOGLE_ENV_VARS
+            unpopulated -= self._SKIP_GOOGLE_ENV_VARS
 
         empty = {
             name

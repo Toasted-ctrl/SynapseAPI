@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  check:
+    name: Lint, Typecheck, and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install uv and enable caching
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      # 3. Install Python and project dependencies from uv.lock
+      # --frozen ensures uv doesn't try to update the lockfile in CI
+      - name: Sync dependencies
+        run: uv sync --frozen --all-extras --dev
+
+      # 4. Run Ruff (Linter)
+      - name: Run Ruff Linter
+        run: uv run ruff check .
+
+      # 5. Run Ruff (Formatter check)
+      - name: Run Ruff Formatter
+        run: uv run ruff format --check .
+
+      # 6. Run Mypy
+      - name: Run Mypy
+        run: uv run mypy src
+
+      # 7. Create a throwaway .env for tests (all external services are mocked)
+      - name: Create test .env
+        run: |
+          FERNET_KEY=$(uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+          CHECKPOINT_KEY=$(uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+          cat > .env <<ENV
+          REDIS_USER=test
+          REDIS_HOSTNAME=localhost
+          REDIS_PASSWORD=test
+          REDIS_PREFIX=test
+          REDIS_PORT=6379
+          PG_HOSTNAME=localhost
+          PG_USERNAME=test
+          PG_PASSWORD=test
+          PG_DATABASE=test
+          PG_DIALECT=postgresql
+          PG_DRIVER=psycopg
+          PG_PORT=5432
+          ENCRYPTION_KEY=${FERNET_KEY}
+          CHECKPOINT_ENCRYPTION_KEY=${CHECKPOINT_KEY}
+          BLIND_INDEX_KEY=test-blind-index-key
+          JWT_SECRET=test-jwt-secret
+          LOG_LEVEL=debug
+          LANGFUSE_SECRET_KEY=test
+          LANGFUSE_PUBLIC_KEY=test
+          LANGFUSE_BASE_URL=http://localhost
+          ALLOWED_ORIGINS=[]
+          COOKIE_SECURE=false
+          COOKIE_MAX_AGE=86400
+          ENABLE_GOOGLE_LOGIN=false
+          WEB_SEARCH_URL=http://localhost
+          WEB_SEARCH_TRANSPORT=test
+          ENV
+
+      # 8. Run Pytest
+      - name: Run Pytest
+        run: uv run pytest

@@ -21,6 +21,7 @@ def make_session(execute=(), scalar=(), scalars=()):
         result = MagicMock()
         result.scalar_one_or_none.return_value = row
         result.all.return_value = row
+        result.scalars.return_value = result
         return result
 
     def _scalars_result(rows):
@@ -39,6 +40,7 @@ def make_session(execute=(), scalar=(), scalars=()):
     session.scalars = AsyncMock(side_effect=[_scalars_result(r) for r in scalars])
     session.add = MagicMock(side_effect=session.added.append)
     session.flush = AsyncMock(side_effect=_flush)
+    session.refresh = AsyncMock()
     session.delete = AsyncMock()
     session.begin_nested = AsyncMock()
     session.commit = AsyncMock()

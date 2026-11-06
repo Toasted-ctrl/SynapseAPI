@@ -18,8 +18,8 @@ router = APIRouter()
 
 @router.get(
     "/playground/conversational-agent",
-    tags=["Playground"],
-    description="Returns an agent configuration.",
+    tags=["Playground / Conversational Agent"],
+    description="Returns an Conversational Agent's configuration.",
     response_model=AgentConfigurationRead,
     status_code=status.HTTP_200_OK,
     responses={
@@ -28,7 +28,7 @@ router = APIRouter()
         }
     },
 )
-async def get_agent(
+async def get_conversational_agent(
     agent_id: UUID,
     session: AsyncSession = Depends(get_db_session),
     user: VerifiedUser = Depends(depends_verify_user),

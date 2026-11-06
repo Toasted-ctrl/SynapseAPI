@@ -17,7 +17,7 @@ router = APIRouter()
 
 @router.delete(
     "/playground/decision-agent",
-    tags=["Playground"],
+    tags=["Playground / Decision Agent"],
     description="Deletes a decision agent configuration.",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
