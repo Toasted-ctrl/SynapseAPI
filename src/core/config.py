@@ -90,8 +90,8 @@ class Config(BaseSettings):
             print(
                 f"Google Login disabled. Skipping environment variables: {' ,'.join(sorted(self._SKIP_GOOGLE_ENV_VARS))} ..."
             )
-            unset - self._SKIP_GOOGLE_ENV_VARS
-            unpopulated - self._SKIP_GOOGLE_ENV_VARS
+            unset -= self._SKIP_GOOGLE_ENV_VARS
+            unpopulated -= self._SKIP_GOOGLE_ENV_VARS
 
         empty = {
             name
