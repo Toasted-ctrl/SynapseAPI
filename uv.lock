@@ -2047,7 +2047,7 @@ wheels = [
 
 [[package]]
 name = "synapse-api"
-version = "0.6.4"
+version = "0.6.5"
 source = { virtual = "." }
 dependencies = [
     { name = "anthropic" },

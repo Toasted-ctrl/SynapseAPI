@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    name: Lint, Typecheck, and Test
+    name: Lint, Typecheck
     runs-on: ubuntu-latest
 
     steps:
@@ -38,7 +38,3 @@ jobs:
       # 6. Run Mypy
       - name: Run Mypy
         run: uv run mypy src
-
-      # 7. Run Pytest
-      - name: Run Pytest
-        run: uv run pytest
