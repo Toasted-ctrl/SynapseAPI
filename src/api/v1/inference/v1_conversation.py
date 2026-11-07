@@ -1,10 +1,12 @@
 import json
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from httpx import ConnectError, ConnectTimeout
 from langchain_core.messages import BaseMessage
+from langchain_core.tools import BaseTool
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,12 +22,21 @@ from database.providers import (
     get_all_provider_configurations,
 )
 from database.session import get_db_session
-from providers.agent import build_agent_model, run_agent, stream_agent
+from providers.agent import (
+    AgentInput,
+    InvalidToolResultsError,
+    NoPendingToolCallsError,
+    PendingToolCallsError,
+    build_agent_input,
+    build_agent_model,
+    run_agent,
+    stream_agent,
+)
 from security.encryption import EncryptedSerializer
 from tools.get_tools import get_agent_tools
 
 from .helpers import ConversationSettings, ModelType, get_provider_configuration
-from .models import ConversationCreate, ConversationRead
+from .models import ConversationCreate, ConversationRead, ToolCallRead
 
 router = APIRouter()
 
@@ -69,6 +80,75 @@ async def _resolve_settings(
         tools=payload.tools or AgentTools(),
         stop_sequence=payload.stop_sequence,
     )
+
+
+def _check_client_tool_names(payload: ConversationCreate, tools: list[BaseTool]):
+    """Raises a 422 if a client tool has the same name as a server tool."""
+    clashes = {t.name for t in tools} & {t.name for t in payload.client_tools or []}
+    if clashes:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Client tool name(s) already used by server tools: {', '.join(sorted(clashes))}",
+        )
+
+
+@asynccontextmanager
+async def _open_checkpointer():
+    async with AsyncPostgresSaver.from_conn_string(
+        conn_string=config.PG_CHECKPOINTER_URL, serde=encryption_serde
+    ) as checkpointer:
+        yield checkpointer
+
+
+def _build_agent(
+    payload: ConversationCreate,
+    settings: ConversationSettings,
+    prov: ProviderConfiguration,
+    tools: list[BaseTool],
+    checkpointer: AsyncPostgresSaver,
+):
+    return build_agent_model(
+        langchain_con=prov.langchain_con,
+        model=settings.model.name,
+        base_url=prov.base_url,
+        temperature=settings.model.parameters.temperature,
+        top_k=settings.model.parameters.top_k,
+        top_p=settings.model.parameters.top_p,
+        encrypted_api_key=prov.encrypted_api_key,
+        tools=tools,
+        system_prompt=settings.system_prompt,
+        stop_sequence=settings.stop_sequence,
+        checkpointer=checkpointer,
+        client_tools=payload.client_tools,
+    )
+
+
+async def _resolve_agent_input(
+    agent, payload: ConversationCreate, thread_id: uuid.UUID
+) -> AgentInput:
+    """Returns the input for the prompt or tool results, as an HTTPException if the
+    thread's state doesn't allow it."""
+    try:
+        return await build_agent_input(
+            agent=agent,
+            thread_id=thread_id,
+            prompt=payload.prompt,
+            tool_results=payload.tool_results,
+        )
+    except PendingToolCallsError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": f"{e} Send their results with tool_results first.",
+                "pending_tool_calls": e.pending,
+            },
+        )
+    except NoPendingToolCallsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    except InvalidToolResultsError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e)
+        )
 
 
 @router.post(
@@ -115,30 +195,32 @@ async def conversation(
             pr=upr,
         )
 
-        async with AsyncPostgresSaver.from_conn_string(
-            conn_string=config.PG_CHECKPOINTER_URL, serde=encryption_serde
-        ) as checkpointer:
-            agent = build_agent_model(
-                langchain_con=prov.langchain_con,
-                model=settings.model.name,
-                base_url=prov.base_url,
-                temperature=settings.model.parameters.temperature,
-                top_k=settings.model.parameters.top_k,
-                top_p=settings.model.parameters.top_p,
-                encrypted_api_key=prov.encrypted_api_key,
+        _check_client_tool_names(payload=payload, tools=tools)
+
+        async with _open_checkpointer() as checkpointer:
+            agent = _build_agent(
+                payload=payload,
+                settings=settings,
+                prov=prov,
                 tools=tools,
-                system_prompt=settings.system_prompt,
-                stop_sequence=settings.stop_sequence,
                 checkpointer=checkpointer,
             )
-
+            agent_input = await _resolve_agent_input(
+                agent=agent, payload=payload, thread_id=thread_id
+            )
             result = await run_agent(
-                agent=agent, prompt=payload.prompt, thread_id=thread_id, user_id=user.id
+                agent=agent,
+                agent_input=agent_input,
+                thread_id=thread_id,
+                user_id=user.id,
             )
 
         return ConversationRead(
             thread_id=thread_id,
             messages=[_serialize_event(m) for m in result["messages"]],
+            pending_tool_calls=[
+                ToolCallRead(**call) for call in result["pending_tool_calls"]
+            ],
         )
 
     except ConnectTimeout, ConnectError:
@@ -192,30 +274,39 @@ async def conversation_stream(
             pr=upr,
         )
 
+        _check_client_tool_names(payload=payload, tools=tools)
+
+        # Resolved before streaming starts, so a thread in the wrong state gets a
+        # real HTTP status. The checkpointer can't stay open until the stream
+        # starts, so the stream opens its own.
+        async with _open_checkpointer() as checkpointer:
+            agent = _build_agent(
+                payload=payload,
+                settings=settings,
+                prov=prov,
+                tools=tools,
+                checkpointer=checkpointer,
+            )
+            agent_input = await _resolve_agent_input(
+                agent=agent, payload=payload, thread_id=thread_id
+            )
+
         async def event_stream(thread_id: uuid.UUID):
             # Headers are already sent once streaming starts, so errors are
             # reported to the client as a final 'error' event instead of an HTTP status.
             try:
-                async with AsyncPostgresSaver.from_conn_string(
-                    conn_string=config.PG_CHECKPOINTER_URL, serde=encryption_serde
-                ) as checkpointer:
-                    agent = build_agent_model(
-                        langchain_con=prov.langchain_con,
-                        model=settings.model.name,
-                        base_url=prov.base_url,
-                        temperature=settings.model.parameters.temperature,
-                        top_k=settings.model.parameters.top_k,
-                        top_p=settings.model.parameters.top_p,
-                        encrypted_api_key=prov.encrypted_api_key,
+                async with _open_checkpointer() as checkpointer:
+                    agent = _build_agent(
+                        payload=payload,
+                        settings=settings,
+                        prov=prov,
                         tools=tools,
-                        system_prompt=settings.system_prompt,
-                        stop_sequence=settings.stop_sequence,
                         checkpointer=checkpointer,
                     )
 
                     async for event in stream_agent(
                         agent=agent,
-                        prompt=payload.prompt,
+                        agent_input=agent_input,
                         thread_id=thread_id,
                         user_id=user.id,
                     ):
