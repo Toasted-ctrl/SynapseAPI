@@ -2,48 +2,48 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from providers.chat_completion import _build_llm
 from providers.dataclasses import LangChainCon
+from providers.llm import build_llm
 
 
 class TestBuildLLM:
-    """Tests for the _build_llm function."""
+    """Tests for the build_llm function."""
 
     @pytest.fixture
     def mock_decrypt(self):
         """Mock decrypt function to return a test API key."""
-        with patch("providers.chat_completion.decrypt") as mock:
+        with patch("providers.llm.decrypt") as mock:
             mock.return_value = "test-api-key"
             yield mock
 
     @pytest.fixture
     def mock_chat_anthropic(self):
         """Mock ChatAnthropic class."""
-        with patch("providers.chat_completion.ChatAnthropic") as mock:
+        with patch("providers.llm.ChatAnthropic") as mock:
             yield mock
 
     @pytest.fixture
     def mock_chat_openai(self):
         """Mock ChatOpenAI class."""
-        with patch("providers.chat_completion.ChatOpenAI") as mock:
+        with patch("providers.llm.ChatOpenAI") as mock:
             yield mock
 
     @pytest.fixture
     def mock_chat_google_generative_ai(self):
         """Mock ChatGoogleGenerativeAI class."""
-        with patch("providers.chat_completion.ChatGoogleGenerativeAI") as mock:
+        with patch("providers.llm.ChatGoogleGenerativeAI") as mock:
             yield mock
 
     @pytest.fixture
     def mock_chat_ollama(self):
         """Mock ChatOllama class."""
-        with patch("providers.chat_completion.ChatOllama") as mock:
+        with patch("providers.llm.ChatOllama") as mock:
             yield mock
 
     @pytest.fixture
     def mock_log(self):
         """Mock log object."""
-        with patch("providers.chat_completion.log") as mock:
+        with patch("providers.llm.log") as mock:
             yield mock
 
     # Tests for ChatAnthropic
@@ -52,8 +52,8 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_anthropic.return_value = mock_instance
 
-        result = _build_llm(
-            langchain_con="ChatAnthropic",
+        result = build_llm(
+            langchain_con=LangChainCon.ANTHROPIC,
             model="claude-3-sonnet",
             base_url="https://api.anthropic.com",
             temperature=0.7,
@@ -70,6 +70,7 @@ class TestBuildLLM:
             temperature=0.7,
             top_p=0.9,
             top_k=5,
+            stop=None,
         )
         mock_decrypt.assert_called_once_with("encrypted-key-123")
 
@@ -78,7 +79,7 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_anthropic.return_value = mock_instance
 
-        result = _build_llm(
+        result = build_llm(
             langchain_con=LangChainCon.ANTHROPIC,
             model="claude-3-sonnet",
             base_url="https://api.anthropic.com",
@@ -96,8 +97,8 @@ class TestBuildLLM:
         with pytest.raises(
             ValueError, match="encrypted_api_key is required for ChatAnthropic"
         ):
-            _build_llm(
-                langchain_con="ChatAnthropic",
+            build_llm(
+                langchain_con=LangChainCon.ANTHROPIC,
                 model="claude-3-sonnet",
                 base_url="https://api.anthropic.com",
                 temperature=0.7,
@@ -112,8 +113,8 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_openai.return_value = mock_instance
 
-        result = _build_llm(
-            langchain_con="ChatOpenAI",
+        result = build_llm(
+            langchain_con=LangChainCon.OPENAI,
             model="gpt-4",
             base_url="https://api.openai.com",
             temperature=0.8,
@@ -129,6 +130,7 @@ class TestBuildLLM:
             base_url="https://api.openai.com",
             temperature=0.8,
             top_p=0.85,
+            stop_sequences=None,
         )
         # top_k should not be passed to ChatOpenAI
         call_kwargs = mock_chat_openai.call_args.kwargs
@@ -140,7 +142,7 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_openai.return_value = mock_instance
 
-        result = _build_llm(
+        result = build_llm(
             langchain_con=LangChainCon.OPENAI,
             model="gpt-4",
             base_url="https://api.openai.com",
@@ -158,8 +160,8 @@ class TestBuildLLM:
         with pytest.raises(
             ValueError, match="encrypted_api_key is required for ChatOpenAI"
         ):
-            _build_llm(
-                langchain_con="ChatOpenAI",
+            build_llm(
+                langchain_con=LangChainCon.OPENAI,
                 model="gpt-4",
                 base_url="https://api.openai.com",
                 temperature=0.8,
@@ -174,8 +176,8 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_google_generative_ai.return_value = mock_instance
 
-        result = _build_llm(
-            langchain_con="ChatGoogleGenerativeAI",
+        result = build_llm(
+            langchain_con=LangChainCon.GOOGLE,
             model="gemini-pro",
             base_url="https://api.google.com",
             temperature=0.9,
@@ -191,6 +193,7 @@ class TestBuildLLM:
             temperature=0.9,
             top_p=0.95,
             top_k=10,
+            stop=None,
         )
         mock_decrypt.assert_called_once_with("encrypted-google-key")
 
@@ -199,8 +202,8 @@ class TestBuildLLM:
         with pytest.raises(
             ValueError, match="encrypted_api_key is required for ChatGoogleGenerativeAI"
         ):
-            _build_llm(
-                langchain_con="ChatGoogleGenerativeAI",
+            build_llm(
+                langchain_con=LangChainCon.GOOGLE,
                 model="gemini-pro",
                 base_url="https://api.google.com",
                 temperature=0.9,
@@ -215,8 +218,8 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_ollama.return_value = mock_instance
 
-        result = _build_llm(
-            langchain_con="ChatOllama",
+        result = build_llm(
+            langchain_con=LangChainCon.OLLAMA,
             model="llama3",
             base_url="http://localhost:11434",
             temperature=0.7,
@@ -232,11 +235,12 @@ class TestBuildLLM:
             temperature=0.7,
             top_p=0.9,
             top_k=5,
+            stop=None,
         )
         # decrypt should not be called for Ollama
-        with patch("providers.chat_completion.decrypt") as mock_decrypt_check:
-            _build_llm(
-                langchain_con="ChatOllama",
+        with patch("providers.llm.decrypt") as mock_decrypt_check:
+            build_llm(
+                langchain_con=LangChainCon.OLLAMA,
                 model="llama3",
                 base_url="http://localhost:11434",
                 temperature=0.7,
@@ -251,7 +255,7 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_ollama.return_value = mock_instance
 
-        result = _build_llm(
+        result = build_llm(
             langchain_con=LangChainCon.OLLAMA,
             model="llama3",
             base_url="http://localhost:11434",
@@ -269,8 +273,8 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_ollama.return_value = mock_instance
 
-        result = _build_llm(
-            langchain_con="ChatOllama",
+        result = build_llm(
+            langchain_con=LangChainCon.OLLAMA,
             model="llama3",
             base_url="http://localhost:11434",
             temperature=0.7,
@@ -288,7 +292,7 @@ class TestBuildLLM:
     def test_build_unsupported_provider(self, mock_log):
         """Test that ValueError is raised for unsupported provider."""
         with pytest.raises(ValueError, match="Unsupported provider: ChatMistral"):
-            _build_llm(
+            build_llm(
                 langchain_con="ChatMistral",
                 model="mistral-large",
                 base_url="https://api.mistral.ai",
@@ -313,23 +317,23 @@ class TestBuildLLM:
     ):
         """Test that model, base_url, temperature, and top_p are passed to all providers (Google ignores base_url)."""
         providers = [
-            ("ChatAnthropic", mock_chat_anthropic, "encrypted-key"),
-            ("ChatOpenAI", mock_chat_openai, "encrypted-key"),
-            ("ChatGoogleGenerativeAI", mock_chat_google_generative_ai, "encrypted-key"),
-            ("ChatOllama", mock_chat_ollama, None),
+            (LangChainCon.ANTHROPIC, mock_chat_anthropic, "encrypted-key"),
+            (LangChainCon.OPENAI, mock_chat_openai, "encrypted-key"),
+            (LangChainCon.GOOGLE, mock_chat_google_generative_ai, "encrypted-key"),
+            (LangChainCon.OLLAMA, mock_chat_ollama, None),
         ]
 
-        for provider_name, mock_class, api_key in providers:
+        for provider_enum, mock_class, api_key in providers:
             mock_class.reset_mock()
             mock_instance = MagicMock()
             mock_class.return_value = mock_instance
 
-            _build_llm(
-                langchain_con=provider_name,
+            build_llm(
+                langchain_con=provider_enum,
                 model="test-model",
                 base_url="https://test.com",
                 temperature=0.5,
-                top_k=10 if provider_name != "ChatOpenAI" else None,
+                top_k=10 if provider_enum != LangChainCon.OPENAI else None,
                 top_p=0.5,
                 encrypted_api_key=api_key,
             )
@@ -337,7 +341,7 @@ class TestBuildLLM:
             mock_class.assert_called_once()
             call_kwargs = mock_class.call_args.kwargs
             assert call_kwargs["model"] == "test-model"
-            if provider_name == "ChatGoogleGenerativeAI":
+            if provider_enum == LangChainCon.GOOGLE:
                 assert "base_url" not in call_kwargs
             else:
                 assert call_kwargs["base_url"] == "https://test.com"
@@ -350,8 +354,8 @@ class TestBuildLLM:
         mock_instance = MagicMock()
         mock_chat_anthropic.return_value = mock_instance
 
-        result = _build_llm(
-            langchain_con="ChatAnthropic",
+        result = build_llm(
+            langchain_con=LangChainCon.ANTHROPIC,
             model="claude-3-sonnet",
             base_url="https://api.anthropic.com",
             temperature=None,
@@ -378,20 +382,20 @@ class TestBuildLLM:
     ):
         """Test that debug logging occurs for each supported provider."""
         providers = [
-            ("ChatAnthropic", mock_chat_anthropic, "encrypted-key"),
-            ("ChatOpenAI", mock_chat_openai, "encrypted-key"),
-            ("ChatGoogleGenerativeAI", mock_chat_google_generative_ai, "encrypted-key"),
-            ("ChatOllama", mock_chat_ollama, None),
+            (LangChainCon.ANTHROPIC, mock_chat_anthropic, "encrypted-key"),
+            (LangChainCon.OPENAI, mock_chat_openai, "encrypted-key"),
+            (LangChainCon.GOOGLE, mock_chat_google_generative_ai, "encrypted-key"),
+            (LangChainCon.OLLAMA, mock_chat_ollama, None),
         ]
 
-        for provider_name, mock_class, api_key in providers:
+        for provider_enum, mock_class, api_key in providers:
             mock_log.reset_mock()
             mock_class.reset_mock()
             mock_instance = MagicMock()
             mock_class.return_value = mock_instance
 
-            _build_llm(
-                langchain_con=provider_name,
+            build_llm(
+                langchain_con=provider_enum,
                 model="test-model",
                 base_url="https://test.com",
                 temperature=0.5,
@@ -402,4 +406,6 @@ class TestBuildLLM:
 
             mock_log.debug.assert_called_once()
             call_args = mock_log.debug.call_args[0]
+            # Extract provider name from enum value
+            provider_name = provider_enum.value
             assert f"Constructing Chat Model: {provider_name}" in call_args[0]

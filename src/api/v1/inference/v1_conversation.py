@@ -50,8 +50,7 @@ def _serialize_event(event):
 async def _resolve_settings(
     payload: ConversationCreate, session: AsyncSession, user_id: uuid.UUID
 ) -> ConversationSettings:
-    """Returns the stored Agent's settings if agent_id is given, otherwise the inline ones.
-    Only stored Agents have a system prompt."""
+    """Returns the stored Agent's settings if agent_id is given, otherwise the inline ones."""
     if payload.agent_id:
         try:
             agent = await get_agent_configuration(
@@ -65,7 +64,10 @@ async def _resolve_settings(
     if payload.model is None:
         raise ValueError("model is required when agent_id is omitted")
     return ConversationSettings(
-        model=payload.model, system_prompt=None, tools=payload.tools or AgentTools()
+        model=payload.model,
+        system_prompt=payload.system_prompt,
+        tools=payload.tools or AgentTools(),
+        stop_sequence=payload.stop_sequence,
     )
 
 
@@ -126,6 +128,7 @@ async def conversation(
                 encrypted_api_key=prov.encrypted_api_key,
                 tools=tools,
                 system_prompt=settings.system_prompt,
+                stop_sequence=settings.stop_sequence,
                 checkpointer=checkpointer,
             )
 
@@ -206,6 +209,7 @@ async def conversation_stream(
                         encrypted_api_key=prov.encrypted_api_key,
                         tools=tools,
                         system_prompt=settings.system_prompt,
+                        stop_sequence=settings.stop_sequence,
                         checkpointer=checkpointer,
                     )
 

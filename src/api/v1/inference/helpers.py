@@ -14,6 +14,7 @@ class ConversationSettings:
     model: AgentModel
     system_prompt: str | None
     tools: AgentTools
+    stop_sequence: list[str] | None = None
 
 
 @dataclass(frozen=True)

@@ -11,7 +11,7 @@ from security.encryption import decrypt
 log = get_logger()
 
 
-def _build_llm(
+def build_llm(
     langchain_con: LangChainCon,
     model: str,
     base_url: str,
@@ -19,6 +19,7 @@ def _build_llm(
     top_k: int | None,
     top_p: float | None,
     encrypted_api_key: str | None,
+    stop_sequence: list[str] | None = None,
 ) -> BaseChatModel:
     """Construct the correct LangChain chat model for the given provider."""
     common_kwargs = {
@@ -33,13 +34,20 @@ def _build_llm(
                 raise ValueError("encrypted_api_key is required for ChatAnthropic")
             log.debug("Constructing Chat Model: ChatAnthropic")
             return ChatAnthropic(
-                api_key=decrypt(encrypted_api_key), top_k=top_k, **common_kwargs
+                api_key=decrypt(encrypted_api_key),
+                top_k=top_k,
+                **common_kwargs,
+                stop=stop_sequence,
             )
         case LangChainCon.OPENAI:
             if encrypted_api_key is None:
                 raise ValueError("encrypted_api_key is required for ChatOpenAI")
             log.debug("Constructing Chat Model: ChatOpenAI")
-            return ChatOpenAI(api_key=decrypt(encrypted_api_key), **common_kwargs)
+            return ChatOpenAI(
+                api_key=decrypt(encrypted_api_key),
+                **common_kwargs,
+                stop_sequences=stop_sequence,
+            )
         case LangChainCon.GOOGLE:
             if encrypted_api_key is None:
                 raise ValueError(
@@ -52,11 +60,12 @@ def _build_llm(
                 temperature=temperature,
                 top_k=top_k,
                 top_p=top_p,
+                stop=stop_sequence,
             )
         case LangChainCon.OLLAMA:
             # Ollama is local — no API key needed
             log.debug("Constructing Chat Model: ChatOllama")
-            return ChatOllama(top_k=top_k, **common_kwargs)
+            return ChatOllama(top_k=top_k, **common_kwargs, stop=stop_sequence)
         case _:
             log.warning(f"Unsupported LangChain Chat Model: '{langchain_con}' ...")
             raise ValueError(f"Unsupported provider: {langchain_con}")

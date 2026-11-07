@@ -12,8 +12,8 @@ from langgraph.graph.state import CompiledStateGraph
 
 from core.langfuse import langfuse_handler
 from core.logging import get_logger
-from providers.chat_completion import _build_llm
 from providers.dataclasses import LangChainCon
+from providers.llm import build_llm
 
 log = get_logger()
 
@@ -51,12 +51,13 @@ def build_agent_model(
     encrypted_api_key: str | None,
     tools: list,
     system_prompt: str | None = None,
+    stop_sequence: list[str] | None = None,
     checkpointer: AsyncPostgresSaver | None = None,
 ) -> CompiledStateGraph:
 
     log.debug("Creating agent ...")
 
-    llm = _build_llm(
+    llm = build_llm(
         langchain_con=langchain_con,
         model=model,
         base_url=base_url,
@@ -64,6 +65,7 @@ def build_agent_model(
         top_k=top_k,
         top_p=top_p,
         encrypted_api_key=encrypted_api_key,
+        stop_sequence=stop_sequence,
     )
 
     log.debug("Built Model to add to agent ...")
