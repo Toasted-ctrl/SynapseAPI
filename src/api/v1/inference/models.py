@@ -12,7 +12,7 @@ class ConversationCreate(BaseModel):
 
     Either references a stored Agent by agent_id, or configures the model and tools
     inline. The inline fields reuse the Agent configuration models, so both paths
-    behave the same. A system prompt is only used when it comes from a stored Agent.
+    behave the same. When agent_id is given, the stored Agent's system prompt is used.
     """
 
     agent_id: Annotated[
@@ -38,11 +38,25 @@ class ConversationCreate(BaseModel):
     tools: Annotated[
         AgentTools | None, Field(description="Tools the model is allowed to use.")
     ] = None
+    system_prompt: Annotated[
+        str | None,
+        Field(description="System prompt given to the model. Excluded with agent_id."),
+    ] = None
+    stop_sequence: Annotated[
+        list[str] | None,
+        Field(
+            description="Sequences that stop generation when produced. Excluded with agent_id."
+        ),
+    ] = None
 
     @model_validator(mode="after")
     def validate_agent_or_model(self):
         if self.agent_id is not None:
-            inline = [f for f in ("model", "tools") if getattr(self, f) is not None]
+            inline = [
+                f
+                for f in ("model", "tools", "system_prompt", "stop_sequence")
+                if getattr(self, f) is not None
+            ]
             if inline:
                 raise ValueError(
                     f"When agent_id is provided, the following fields must be omitted: {', '.join(inline)}."

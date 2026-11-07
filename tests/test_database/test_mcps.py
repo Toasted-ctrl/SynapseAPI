@@ -3,7 +3,7 @@ import uuid
 import pytest
 from db_helpers import make_session, params, row
 
-from database.mcps import MCP, MCPConfig, get_mcp_by_id, get_mcps
+from database.mcps import MCP, MCPConfig, get_mcp_by_id, get_mcps, insert_mcp
 
 pytestmark = pytest.mark.asyncio
 
@@ -52,3 +52,49 @@ class TestGetMcpById:
 
         with pytest.raises(ValueError, match="does not exist"):
             await get_mcp_by_id(session=session, mcp_id=uuid.uuid4())
+
+
+class TestInsertMcp:
+    async def test_returns_id(self):
+        session = make_session()
+        config = MCPConfig(
+            name="test_mcp",
+            url="http://localhost:8000",
+            transport="streamable_http",
+        )
+
+        result = await insert_mcp(session=session, mcp_config=config)
+
+        assert isinstance(result, uuid.UUID)
+
+    async def test_adds_mcp_with_correct_fields(self):
+        session = make_session()
+        config = MCPConfig(
+            name="search",
+            url="http://mcp-server",
+            transport="sse",
+        )
+
+        await insert_mcp(session=session, mcp_config=config)
+
+        assert len(session.added) == 1
+        added = session.added[0]
+        assert added.name == "search"
+        assert added.url == "http://mcp-server"
+        assert added.transport == "sse"
+        assert isinstance(added.id, uuid.UUID)
+
+    async def test_uses_provided_id(self):
+        session = make_session()
+        provided_id = uuid.uuid4()
+        config = MCPConfig(
+            id=provided_id,
+            name="test",
+            url="http://example.com",
+            transport="http",
+        )
+
+        result = await insert_mcp(session=session, mcp_config=config)
+
+        assert result == provided_id
+        assert session.added[0].id == provided_id
