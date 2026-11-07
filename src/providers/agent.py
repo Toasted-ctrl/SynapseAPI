@@ -3,8 +3,8 @@ from collections.abc import AsyncGenerator
 from typing import Any, Literal, TypedDict
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import wrap_tool_call
-from langchain_core.messages import AIMessageChunk, ToolMessage
+from langchain.agents.middleware import wrap_model_call, wrap_tool_call
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.errors import GraphBubbleUp
@@ -41,6 +41,37 @@ async def _tool_errors_to_model(request, handler):
         )
 
 
+def _without_empty_text(message: BaseMessage) -> BaseMessage:
+    """Returns the message without blank str items in its list content.
+
+    When a model returns thinking that wasn't requested, langchain_anthropic streams
+    the reply as str chunks mixed with a thinking block, which merge into content
+    like ["", {"type": "thinking", ...}, "text"]. Replaying that "" sends an empty
+    text block, which Anthropic rejects with a 400.
+    """
+    if not isinstance(message, AIMessage) or not isinstance(message.content, list):
+        return message
+    content = [
+        block
+        for block in message.content
+        if not (isinstance(block, str) and not block.strip())
+    ]
+    if len(content) == len(message.content):
+        return message
+    return message.model_copy(update={"content": content})
+
+
+@wrap_model_call
+async def _drop_empty_text_blocks(request, handler):
+    """Removes blank text from stored AI messages before every model call.
+
+    Only the request is changed, not the checkpoint, so threads that already
+    contain such messages work again.
+    """
+    messages = [_without_empty_text(m) for m in request.messages]
+    return await handler(request.override(messages=messages))
+
+
 def build_agent_model(
     langchain_con: LangChainCon,
     model: str,
@@ -75,7 +106,7 @@ def build_agent_model(
         tools=tools,
         system_prompt=system_prompt,
         checkpointer=checkpointer,
-        middleware=[_tool_errors_to_model],
+        middleware=[_drop_empty_text_blocks, _tool_errors_to_model],
     )
 
     log.debug("Agent created, returning ...")
