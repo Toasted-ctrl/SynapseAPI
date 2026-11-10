@@ -38,6 +38,13 @@ class AgentModelParameters(BaseModel):
             description="Restricts sampling to the k most likely tokens at each step. Lower values make output more predictable.",
         ),
     ] = None
+    max_output_tokens: Annotated[
+        int | None,
+        Field(
+            ge=1,
+            description="Sets the number of tokens the model is allowed to generate.",
+        ),
+    ] = None
 
 
 class AgentModel(BaseModel):
@@ -50,17 +57,21 @@ class AgentModel(BaseModel):
         str, Field(min_length=1, description="Provider-specific model name.")
     ]
     parameters: Annotated[
-        AgentModelParameters, Field(description="Sampling parameters for the model.")
-    ] = Field(default_factory=AgentModelParameters)
+        AgentModelParameters,
+        Field(
+            description="Sampling parameters for the model.",
+            default_factory=lambda: AgentModelParameters(),
+        ),
+    ]
 
 
 class AgentTools(BaseModel):
     """Tools the Agent is allowed to use."""
 
-    mcp_ids: Annotated[
-        list[UUID],
-        Field(description="List of MCP servers that Agent is allowed to use."),
-    ] = Field(default_factory=list)
+    mcp_ids: list[UUID] = Field(
+        default_factory=list,
+        description="List of MCP servers that Agent is allowed to use.",
+    )
     web_search: Annotated[
         bool, Field(description="Allows the Agent to search the web.")
     ] = False
@@ -91,8 +102,12 @@ class AgentConfigurationBase(BaseModel):
         str | None, Field(description="System prompt given to the Agent.")
     ] = None
     tools: Annotated[
-        AgentTools, Field(description="Tools the Agent is allowed to use.")
-    ] = Field(default_factory=AgentTools)
+        AgentTools,
+        Field(
+            description="Tools the Agent is allowed to use.",
+            default_factory=lambda: AgentTools(),
+        ),
+    ]
 
 
 class AgentConfigurationCreate(AgentConfigurationBase):
@@ -153,10 +168,10 @@ class DecisionState(BaseModel):
         str | None,
         Field(description="Describes the situation callers should send."),
     ] = None
-    fields: Annotated[
-        list[DecisionStateField],
-        Field(description="Fields callers send. Required when type is 'fields'."),
-    ] = Field(default_factory=list)
+    fields: list[DecisionStateField] = Field(
+        default_factory=list,
+        description="Fields callers send. Required when type is 'fields'.",
+    )
 
     @model_validator(mode="after")
     def _check_fields(self) -> "DecisionState":
@@ -235,9 +250,13 @@ class DecisionAgentConfigurationBase(BaseModel):
         str | None, Field(description="Description of the Agent.")
     ] = None
     model: DecisionAgentModel
-    state: Annotated[DecisionState, Field(description="The state callers send.")] = (
-        Field(default_factory=DecisionState)
-    )
+    state: Annotated[
+        DecisionState,
+        Field(
+            description="The state callers send.",
+            default_factory=lambda: DecisionState(),
+        ),
+    ]
     questions: Annotated[
         list[DecisionQuestion],
         Field(min_length=1, description="Questions the Agent answers."),

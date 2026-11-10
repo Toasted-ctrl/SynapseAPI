@@ -114,6 +114,7 @@ def _build_agent(
         temperature=settings.model.parameters.temperature,
         top_k=settings.model.parameters.top_k,
         top_p=settings.model.parameters.top_p,
+        max_output_tokens=settings.model.parameters.max_output_tokens,
         encrypted_api_key=prov.encrypted_api_key,
         tools=tools,
         system_prompt=settings.system_prompt,

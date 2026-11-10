@@ -19,6 +19,7 @@ def build_llm(
     top_k: int | None,
     top_p: float | None,
     encrypted_api_key: str | None,
+    max_output_tokens: int | None = None,
     stop_sequence: list[str] | None = None,
 ) -> BaseChatModel:
     """Construct the correct LangChain chat model for the given provider."""
@@ -38,6 +39,7 @@ def build_llm(
                 top_k=top_k,
                 **common_kwargs,
                 stop=stop_sequence,
+                max_tokens=max_output_tokens,
             )
         case LangChainCon.OPENAI:
             if encrypted_api_key is None:
@@ -47,6 +49,7 @@ def build_llm(
                 api_key=decrypt(encrypted_api_key),
                 **common_kwargs,
                 stop_sequences=stop_sequence,
+                max_completion_tokens=max_output_tokens,
             )
         case LangChainCon.GOOGLE:
             if encrypted_api_key is None:
@@ -61,11 +64,17 @@ def build_llm(
                 top_k=top_k,
                 top_p=top_p,
                 stop=stop_sequence,
+                max_output_tokens=max_output_tokens,
             )
         case LangChainCon.OLLAMA:
             # Ollama is local — no API key needed
             log.debug("Constructing Chat Model: ChatOllama")
-            return ChatOllama(top_k=top_k, **common_kwargs, stop=stop_sequence)
+            return ChatOllama(
+                top_k=top_k,
+                **common_kwargs,
+                stop=stop_sequence,
+                num_predict=max_output_tokens,
+            )
         case _:
             log.warning(f"Unsupported LangChain Chat Model: '{langchain_con}' ...")
             raise ValueError(f"Unsupported provider: {langchain_con}")

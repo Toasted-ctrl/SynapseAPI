@@ -60,6 +60,7 @@ class TestBuildLLM:
             top_k=5,
             top_p=0.9,
             encrypted_api_key="encrypted-key-123",
+            max_output_tokens=1024,
         )
 
         assert result == mock_instance
@@ -71,6 +72,7 @@ class TestBuildLLM:
             top_p=0.9,
             top_k=5,
             stop=None,
+            max_tokens=1024,
         )
         mock_decrypt.assert_called_once_with("encrypted-key-123")
 
@@ -121,6 +123,7 @@ class TestBuildLLM:
             top_k=None,
             top_p=0.85,
             encrypted_api_key="encrypted-openai-key",
+            max_output_tokens=1024,
         )
 
         assert result == mock_instance
@@ -131,6 +134,7 @@ class TestBuildLLM:
             temperature=0.8,
             top_p=0.85,
             stop_sequences=None,
+            max_completion_tokens=1024,
         )
         # top_k should not be passed to ChatOpenAI
         call_kwargs = mock_chat_openai.call_args.kwargs
@@ -184,6 +188,7 @@ class TestBuildLLM:
             top_k=10,
             top_p=0.95,
             encrypted_api_key="encrypted-google-key",
+            max_output_tokens=1024,
         )
 
         assert result == mock_instance
@@ -194,6 +199,7 @@ class TestBuildLLM:
             top_p=0.95,
             top_k=10,
             stop=None,
+            max_output_tokens=1024,
         )
         mock_decrypt.assert_called_once_with("encrypted-google-key")
 
@@ -226,6 +232,7 @@ class TestBuildLLM:
             top_k=5,
             top_p=0.9,
             encrypted_api_key=None,
+            max_output_tokens=1024,
         )
 
         assert result == mock_instance
@@ -236,6 +243,7 @@ class TestBuildLLM:
             top_p=0.9,
             top_k=5,
             stop=None,
+            num_predict=1024,
         )
         # decrypt should not be called for Ollama
         with patch("providers.llm.decrypt") as mock_decrypt_check:

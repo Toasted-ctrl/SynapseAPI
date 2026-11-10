@@ -84,6 +84,7 @@ def build_agent_model(
     top_p: float | None,
     encrypted_api_key: str | None,
     tools: list,
+    max_output_tokens: int | None = None,
     system_prompt: str | None = None,
     stop_sequence: list[str] | None = None,
     checkpointer: AsyncPostgresSaver | None = None,
@@ -99,6 +100,7 @@ def build_agent_model(
         temperature=temperature,
         top_k=top_k,
         top_p=top_p,
+        max_output_tokens=max_output_tokens,
         encrypted_api_key=encrypted_api_key,
         stop_sequence=stop_sequence,
     )
