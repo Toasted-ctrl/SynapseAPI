@@ -17,3 +17,6 @@ configure_init_mcps.json
 # k8s manifests
 secrets.yaml
 deployment.yaml
+
+# TODO:
+todo.md
