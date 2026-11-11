@@ -4,7 +4,7 @@ metadata:
   name: artificial-intelligence-api
   namespace: artificial-intelligence-api
   labels:
-    app: artifical-intelligence-api
+    app: artificial-intelligence-api
     keel.sh/policy: major
     keel.sh/trigger: poll
   annotations:
@@ -13,7 +13,7 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: artifical-intelligence-api
+      app: artificial-intelligence-api
   strategy:
     type: RollingUpdate
     rollingUpdate:

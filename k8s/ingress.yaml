@@ -3,6 +3,11 @@ kind: Ingress
 metadata:
   name: artificial-intelligence-api-ingress
   namespace: artificial-intelligence-api
+  annotations:
+    # nginx annotations required so CLI LLM streams don't end prematurely.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
 spec:
   ingressClassName: nginx
   rules:
