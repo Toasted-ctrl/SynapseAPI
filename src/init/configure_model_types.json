@@ -114,7 +114,16 @@
         "gpt-4o-mini",
         "gemini-4-argon",
         "gemini-3.8-flash",
-        "gemini-3.6-flash"
+        "gemini-3.6-flash",
+        "deepseek/deepseek-v4.1-flash",
+        "deepseek/deepseek-v4-pro-0813",
+        "qwen/qwen3.8-2.4t-a95b",
+        "moonshotai/kimi-k2.7-code",
+        "moonshotai/kimi-k3",
+        "moonshotai/kimi-k3.1-pro",
+        "z-ai/glm-5.3",
+        "z-ai/glm-5.3-flash",
+        "minimax/minimax-m3"
     ],
     "translation": [
         "translategemma:latest"
