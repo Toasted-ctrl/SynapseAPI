@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-11-12.
+> This document was last reviewed on 2026-11-21.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -53,7 +53,8 @@ SynapseAPI is a lightweight gateway that sits between your apps and the LLM prov
 Every provider listed here has been tested and verified with a personally obtained API key.
 
 - Anthropic
-- Google
+- Fireworks AI
+- Google (AI Studio)
 - Lyceum Technology
 - Melious
 - Mistral
