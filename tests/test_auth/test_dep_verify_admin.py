@@ -69,7 +69,7 @@ class TestDependsVerifyAdmin:
         with pytest.raises(HTTPException) as exc_info:
             await depends_verify_admin(user=verified_user, session=mock_session)
 
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
         assert str(exc_info.value.detail) == error_message
         mock_get_admin_user_by_user_id.assert_awaited_once_with(
             user_id=verified_user.id, session=mock_session
@@ -173,7 +173,7 @@ class TestDependsVerifySuperAdmin:
         with pytest.raises(HTTPException) as exc_info:
             await depends_verify_super_admin(user=verified_user, session=mock_session)
 
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
         assert f"User {verified_user.id} is not a Super Admin." in str(
             exc_info.value.detail
         )
@@ -188,7 +188,7 @@ class TestDependsVerifySuperAdmin:
         with pytest.raises(HTTPException) as exc_info:
             await depends_verify_super_admin(user=verified_user, session=mock_session)
 
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
         assert str(exc_info.value.detail) == error_message
         mock_get_admin_user_by_user_id.assert_awaited_once_with(
             user_id=verified_user.id, session=mock_session

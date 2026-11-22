@@ -50,3 +50,11 @@ async def insert_mcp(session: AsyncSession, mcp_config: MCPConfig) -> UUID:
     await session.refresh(mcp)
     log.debug(f"Inserted MCP {mcp.id}")
     return mcp.id
+
+
+async def insert_new_mcp(session: AsyncSession, mcp_config: MCPConfig) -> MCPConfig:
+    mcp = MCPsT(**asdict(mcp_config))
+    session.add(mcp)
+    await session.flush()
+    log.debug(f"Inserted MCP {mcp.id}")
+    return MCPConfig(id=mcp.id, name=mcp.name, url=mcp.url, transport=mcp.transport)

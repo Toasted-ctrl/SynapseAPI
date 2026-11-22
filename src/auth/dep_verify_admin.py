@@ -22,7 +22,7 @@ async def depends_verify_admin(
     try:
         admin = await get_admin_user_by_user_id(user_id=user.id, session=session)
     except NoAdminError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return VerifiedAdmin(id=admin.user_id)
 
 
@@ -39,9 +39,9 @@ async def depends_verify_super_admin(
         admin = await get_admin_user_by_user_id(user_id=user.id, session=session)
         if not admin.is_super_admin:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"User {user.id} is not a Super Admin.",
             )
     except NoAdminError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
     return VerifiedSuperAdmin(id=admin.user_id)
