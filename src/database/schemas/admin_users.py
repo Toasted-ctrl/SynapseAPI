@@ -16,8 +16,6 @@ class AdminT(Base):
         primary_key=True,
     )
 
-    is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False)
-
     is_super_admin: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
     created_date: Mapped[datetime] = mapped_column(

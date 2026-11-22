@@ -20,7 +20,28 @@ async def depends_verify_admin(
     session: AsyncSession = Depends(get_db_session),
 ) -> VerifiedAdmin:
     try:
-        user_id = await get_admin_user_by_user_id(user_id=user.id, session=session)
+        admin = await get_admin_user_by_user_id(user_id=user.id, session=session)
     except NoAdminError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e)
-    return VerifiedAdmin(id=user_id)
+    return VerifiedAdmin(id=admin.user_id)
+
+
+@dataclass(frozen=True)
+class VerifiedSuperAdmin:
+    id: UUID
+
+
+async def depends_verify_super_admin(
+    user: VerifiedUser = Depends(depends_verify_user),
+    session: AsyncSession = Depends(get_db_session),
+) -> VerifiedSuperAdmin:
+    try:
+        admin = await get_admin_user_by_user_id(user_id=user.id, session=session)
+        if not admin.is_super_admin:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"User {user.id} is not a Super Admin.",
+            )
+    except NoAdminError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=e)
+    return VerifiedSuperAdmin(id=admin.user_id)
