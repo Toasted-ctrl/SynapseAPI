@@ -37,7 +37,59 @@ PostgreSQL and Redis must be available to the application. They may be hosted in
 git clone https://github.com/Toasted-ctrl/SynapseAPI.git
 cd SynapseAPI
 ```
-## 3. Initialize the Database
+## 3. Run the Required Services
+
+For local development, PostgreSQL, Redis 6+ and Qdrant must be running before you
+start the API. The quickest way is three Docker containers:
+
+```bash
+# PostgreSQL
+docker run -d --name synapse-postgres \
+  -e POSTGRES_USER=synapse \
+  -e POSTGRES_PASSWORD=synapse \
+  -e POSTGRES_DB=synapse \
+  -p 5432:5432 \
+  postgres:17
+
+# Redis 6+
+docker run -d --name synapse-redis \
+  -p 6379:6379 \
+  redis:7
+
+# Qdrant
+docker run -d --name synapse-qdrant \
+  -p 6333:6333 \
+  qdrant/qdrant
+```
+
+With these defaults, the matching `.env` values are:
+
+```dotenv
+REDIS_USER=
+REDIS_HOSTNAME=localhost
+REDIS_PASSWORD=
+REDIS_PREFIX=synapse_1
+REDIS_PORT=6379
+
+PG_HOSTNAME=localhost
+PG_USERNAME=synapse
+PG_PASSWORD=synapse
+PG_DATABASE=synapse
+PG_DIALECT=postgresql
+PG_DRIVER=psycopg2
+PG_PORT=5432
+```
+
+Qdrant is not configured through `.env`. Instead, it is registered as a vector
+store in `src/init/configure_init_vs.json` (see
+`configure_init_vs_example.json`). For the container above, use
+`"base_url": "localhost"`, `"port": 6333` and any string as `api_key` (the
+local container does not require one).
+
+If you already have these services running elsewhere, skip the containers and
+point `.env` (and `configure_init_vs.json`) at your existing instances.
+
+## 4. Initialize the Database
 The project includes an initialization script for creating the required database tables and optionally creating preconfigured clients, providers, vector stores and vector store collections.
 
 Configuration is controlled in src/init.py:
@@ -56,12 +108,12 @@ uv run src/init.py
 
 
 All commands in this guide assume that you are running them from the repository root.
-## 4. Local Development
+## 5. Local Development
 ```bash
 cp .env.example .env
 nano .env
 ```
-### 4.1 Redis
+### 5.1 Redis
 Redis 6+ is required by the application.
 ```dotenv
 REDIS_USER=
@@ -70,7 +122,7 @@ REDIS_PASSWORD=
 REDIS_PREFIX=
 REDIS_PORT=
 ```
-### 4.2 PostgreSQL
+### 5.2 PostgreSQL
 PostgreSQL is required for application data.
 ```dotenv
 PG_HOSTNAME=
@@ -81,14 +133,14 @@ PG_DIALECT=
 PG_DRIVER=
 PG_PORT=
 ```
-### 4.3 Encryption
+### 5.3 Encryption
 
 Sensitive data is encrypted at rest. Configure a strong encryption key:
 
 ```dotenv
 ENCRYPTION_KEY=
 ```
-### 4.4 Blind Index
+### 5.4 Blind Index
 
 The blind index key is used for searchable encrypted data.
 
@@ -97,14 +149,14 @@ Use a separate key from ENCRYPTION_KEY:
 ```dotenv
 BLIND_INDEX_KEY=
 ```
-### 4.5 JWT
+### 5.5 JWT
 
 JWT tokens are signed using:
 
 ```dotenv
 JWT_SECRET=
 ```
-### 4.6 Logging
+### 5.6 Logging
 
 The available log levels are:
 
@@ -115,7 +167,7 @@ warn
 error
 ```
 
-### 4.7 Google Login
+### 5.7 Google Login
 
 Google OAuth is optional.
 
@@ -135,7 +187,7 @@ GOOGLE_HMAC=
 GOOGLE_TOKEN_URL=
 GOOGLE_CLIENT_SECRET=
 ```
-### 4.8 Cookies
+### 5.8 Cookies
 
 Cookie configuration is also available:
 
@@ -146,7 +198,7 @@ COOKIE_MAX_AGE=86400
 
 For production deployments using HTTPS, COOKIE_SECURE should normally be set to true.
 
-## 5. Building the image
+## 6. Building the image
 
 The repository includes build.sh for building the application container image.
 
@@ -165,12 +217,12 @@ storage01:5000/artificial-intelligence-api:latest
 ```
 
 If you are using a different container registry, update the registry configuration in build.sh before building and pushing the image.
-## 6. Kubernetes Deployment
+## 7. Kubernetes Deployment
 
 The repository includes the Kubernetes manifests required to deploy the application under the k8s/ directory. The current manifests include a namespace, ConfigMap, Deployment example, Service, PersistentVolume, PersistentVolumeClaim, Secret example, and Ingress.
 
 The Kubernetes deployment is intended to run the application as a container and expose it through a Kubernetes Service.
-### 6.1 Prepare the Kubernetes Manifests
+### 7.1 Prepare the Kubernetes Manifests
 
 Before deploying, review the files in:
 
@@ -189,7 +241,7 @@ secrets_example.yaml
 service.yaml
 ```
 Update all manifests with your own details.
-### 6.2 Deploy the Application
+### 7.2 Deploy the Application
 
 From the repository root, apply the manifests:
 

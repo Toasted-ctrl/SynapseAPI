@@ -78,7 +78,7 @@ Every provider listed here has been tested and verified with a personally obtain
 | Kubernetes | Deployment (with Keel for auto-updates)   |
 
 ## Quickstart
-This gets a local development server running. You will need Python 3.14, [uv](https://docs.astral.sh/uv/), PostgreSQL, Redis 6+ and Qdrant. See [SETUP.md](SETUP.md) for full configuration and Kubernetes deployment.
+This gets a local development server running. You will need Python 3.14, [uv](https://docs.astral.sh/uv/), and running PostgreSQL, Redis 6+ and Qdrant instances. If you don't have them yet, [SETUP.md](SETUP.md#3-run-the-required-services) shows how to start all three with Docker in under a minute. See [SETUP.md](SETUP.md) for full configuration and Kubernetes deployment.
 
 ```bash
 git clone https://github.com/Toasted-ctrl/SynapseAPI.git
