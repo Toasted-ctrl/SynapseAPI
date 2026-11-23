@@ -129,7 +129,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Skills       | `POST, GET, PUT /documents/skill`                                         | Manage skills                                   |
 | Vectors      | `POST /documents/vector-store/add`, `POST /documents/vector-store/search` | Store and search documents                      |
 | Providers    | `GET /providers/models`, `GET /providers/models/sampling`, `GET /providers/configuration` | Available models and provider setup |
-| Tools        | `GET, POST /tools/mcp`                                                    | Available MCP servers                           |
+| Tools        | `GET, POST, DELETE /tools/mcp`                                            | Available MCP servers                           |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |
 
 ## Roadmap
