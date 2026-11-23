@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-11-21.
+> This document was last reviewed on 2026-11-23.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -135,13 +135,10 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 ## Roadmap
 
 ### Short Term
-- [ ] HMAC hashing and verification for each path.
 - [ ] Add reranker to Vector Search.
 
 ### Long Term
-- [x] Agent building (create, read, update, delete).
 - [ ] Log conversation IDs and history in a conversation table.
-- [x] Share agents with other users.
 
 ## Contributing
 PRs are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, linting, and code conventions. For security issues, please see [SECURITY.md](SECURITY.md).
