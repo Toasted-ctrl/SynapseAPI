@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth.dep_verify_admin import VerifiedAdmin, depends_verify_admin
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.cache import cache_key_builder
-from database.mcps import MCPConfig, MCPNotFoundError, get_mcps, insert_new_mcp, delete_mcp_by_id
+from database.mcps import (
+    MCPConfig,
+    MCPNotFoundError,
+    delete_mcp_by_id,
+    get_mcps,
+    insert_new_mcp,
+)
 from database.session import get_db_session
 
 from .models import MCPConfigurationCreate, MCPConfigurationRead, McpsRead
@@ -56,7 +62,7 @@ async def add_tools_mcp(
     "/tools/mcp",
     tags=["Tools"],
     description=("Deletes an MCP from the database. Requires Admin permissions."),
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_mcp(
     mcp_id: UUID,
@@ -64,12 +70,6 @@ async def delete_mcp(
     admin: VerifiedAdmin = Depends(depends_verify_admin),
 ) -> None:
     try:
-        await delete_mcp_by_id(
-            session=session,
-            mcp_id=mcp_id
-        )
+        await delete_mcp_by_id(session=session, mcp_id=mcp_id)
     except MCPNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
