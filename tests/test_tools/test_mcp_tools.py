@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from database.mcps import MCPConfig
-from tools.mcp_tools import get_mcp_tools, url_connection
+from tools.mcp_tools import MCPUnavailableError, get_mcp_tools, url_connection
 
 
 class TestUrlConnection:
@@ -58,7 +58,9 @@ class TestGetMcpTools:
                     ),
                 ]
                 mock_client = MagicMock()
-                mock_client.get_tools = AsyncMock(return_value=mock_tools)
+                mock_client.get_tools = AsyncMock(
+                    side_effect=[[mock_tool_1], [mock_tool_2]]
+                )
                 mock_client_class.return_value = mock_client
 
                 result = await get_mcp_tools(
@@ -66,6 +68,13 @@ class TestGetMcpTools:
                 )
 
                 assert result == mock_tools
+                assert [
+                    c.kwargs["server_name"]
+                    for c in mock_client.get_tools.call_args_list
+                ] == [
+                    "search",
+                    "files",
+                ]
                 first_call_connections = mock_client_class.call_args_list[0][1][
                     "connections"
                 ]
@@ -78,18 +87,51 @@ class TestGetMcpTools:
                 }
 
     async def test_returns_empty_tools_with_no_mcps(self):
-        """Test that empty mcp_ids returns empty tools list."""
+        """Test that empty mcp_ids returns an empty list without creating a client."""
         mock_session = MagicMock()
-        mock_tools = []
 
         with patch("tools.mcp_tools.MultiServerMCPClient") as mock_client_class:
-            mock_client = MagicMock()
-            mock_client.get_tools = AsyncMock(return_value=mock_tools)
-            mock_client_class.return_value = mock_client
-
             result = await get_mcp_tools(session=mock_session, mcp_ids=[])
 
-            assert result == mock_tools
+            assert result == []
+            mock_client_class.assert_not_called()
+
+    async def test_raises_mcp_unavailable_naming_failed_servers(self):
+        """Test that a failing MCP raises MCPUnavailableError naming only that MCP."""
+        mcp_id_1 = uuid.uuid4()
+        mcp_id_2 = uuid.uuid4()
+        mock_session = MagicMock()
+
+        with patch("tools.mcp_tools.get_mcp_by_id") as mock_get_mcp:
+            with patch("tools.mcp_tools.MultiServerMCPClient") as mock_client_class:
+                mock_get_mcp.side_effect = [
+                    MCPConfig(
+                        id=mcp_id_1,
+                        name="search",
+                        url="http://search",
+                        transport="streamable_http",
+                    ),
+                    MCPConfig(
+                        id=mcp_id_2, name="files", url="http://files", transport="sse"
+                    ),
+                ]
+                mock_client = MagicMock()
+                mock_client.get_tools = AsyncMock(
+                    side_effect=[
+                        [MagicMock()],
+                        ExceptionGroup("boom", [RuntimeError("Session terminated")]),
+                    ]
+                )
+                mock_client_class.return_value = mock_client
+
+                with pytest.raises(MCPUnavailableError) as exc_info:
+                    await get_mcp_tools(
+                        session=mock_session, mcp_ids=[mcp_id_1, mcp_id_2]
+                    )
+
+                assert exc_info.value.names == ["files"]
+                assert "files" in str(exc_info.value)
+                assert "search" not in str(exc_info.value)
 
     async def test_handles_missing_mcp(self):
         """Test that ValueError is raised when an MCP is not found."""

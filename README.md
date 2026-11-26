@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-11-12.
+> This document was last reviewed on 2026-11-23.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -53,7 +53,8 @@ SynapseAPI is a lightweight gateway that sits between your apps and the LLM prov
 Every provider listed here has been tested and verified with a personally obtained API key.
 
 - Anthropic
-- Google
+- Fireworks AI
+- Google (AI Studio)
 - Lyceum Technology
 - Melious
 - Mistral
@@ -77,7 +78,7 @@ Every provider listed here has been tested and verified with a personally obtain
 | Kubernetes | Deployment (with Keel for auto-updates)   |
 
 ## Quickstart
-This gets a local development server running. You will need Python 3.14, [uv](https://docs.astral.sh/uv/), PostgreSQL, Redis 6+ and Qdrant. See [SETUP.md](SETUP.md) for full configuration and Kubernetes deployment.
+This gets a local development server running. You will need Python 3.14, [uv](https://docs.astral.sh/uv/), and running PostgreSQL, Redis 6+ and Qdrant instances. If you don't have them yet, [SETUP.md](SETUP.md#3-run-the-required-services) shows how to start all three with Docker in under a minute. See [SETUP.md](SETUP.md) for full configuration and Kubernetes deployment.
 
 ```bash
 git clone https://github.com/Toasted-ctrl/SynapseAPI.git
@@ -128,19 +129,16 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Skills       | `POST, GET, PUT /documents/skill`                                         | Manage skills                                   |
 | Vectors      | `POST /documents/vector-store/add`, `POST /documents/vector-store/search` | Store and search documents                      |
 | Providers    | `GET /providers/models`, `GET /providers/models/sampling`, `GET /providers/configuration` | Available models and provider setup |
-| Tools        | `GET /tools/mcp`                                                          | Available MCP servers                           |
+| Tools        | `GET, POST, DELETE /tools/mcp`                                            | Available MCP servers                           |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |
 
 ## Roadmap
 
 ### Short Term
-- [ ] HMAC hashing and verification for each path.
 - [ ] Add reranker to Vector Search.
 
 ### Long Term
-- [x] Agent building (create, read, update, delete).
 - [ ] Log conversation IDs and history in a conversation table.
-- [x] Share agents with other users.
 
 ## Contributing
 PRs are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, linting, and code conventions. For security issues, please see [SECURITY.md](SECURITY.md).

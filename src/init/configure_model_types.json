@@ -132,7 +132,17 @@
         "moonshotai/kimi-k3.1-pro",
         "z-ai/glm-5.3",
         "z-ai/glm-5.3-flash",
-        "minimax/minimax-m3"
+        "minimax/minimax-m3",
+        "accounts/fireworks/models/kimi-k3p1-pro",
+        "accounts/fireworks/models/deepseek-v4p1-flash",
+        "accounts/fireworks/models/deepseek-v4p1-flash-1017",
+        "accounts/fireworks/models/ember-1",
+        "accounts/fireworks/models/minimax-m3p1-flash",
+        "accounts/fireworks/models/glm-5p3-flash",
+        "accounts/fireworks/models/glm-5p3",
+        "accounts/fireworks/models/mimo-v2p6-pro-rl",
+        "accounts/fireworks/models/qwen3p8-flash-next-nvfp4",
+        "accounts/fireworks/models/muse-spark-open"
     ],
     "translation": [
         "translategemma:latest"

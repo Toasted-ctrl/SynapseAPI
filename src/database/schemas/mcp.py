@@ -6,6 +6,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from database.schemas.base import Base
 
+# TODO: Need to add more checks to confirm uniqueness of the MCP.
+# Additionally, we somehow need to limit access to the MCPs. Admins should be able to
+# enable or disable MCP access for specific Users.
+
 
 class MCPsT(Base):
     __tablename__ = "mcps"

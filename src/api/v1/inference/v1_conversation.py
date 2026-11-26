@@ -34,6 +34,7 @@ from providers.agent import (
 )
 from security.encryption import EncryptedSerializer
 from tools.get_tools import get_agent_tools
+from tools.mcp_tools import MCPUnavailableError
 
 from .helpers import ConversationSettings, ModelType, get_provider_configuration
 from .models import ConversationCreate, ConversationRead, ToolCallRead
@@ -229,6 +230,10 @@ async def conversation(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to connect to Provider",
         )
+    except MCPUnavailableError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)
+        ) from e
 
 
 @router.post(
@@ -338,3 +343,7 @@ async def conversation_stream(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Unable to connect to Provider",
         )
+    except MCPUnavailableError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)
+        ) from e

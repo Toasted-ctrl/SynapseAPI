@@ -1,5 +1,6 @@
 # Import every model so it registers on Base.metadata.
 # Any import of database.schemas.* (e.g. Base in create_tables) runs this first.
+from .admin_users import AdminT
 from .agent_config import AgentConfigT
 from .agent_sharing import AgentSharingT
 from .base import Base
@@ -18,6 +19,7 @@ from .vector_store import VectorStoreSettingsT
 from .vector_store_collections import VectorStoreCollectionT
 
 __all__ = [
+    "AdminT",
     "AgentConfigT",
     "AgentSharingT",
     "Base",

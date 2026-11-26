@@ -5,11 +5,21 @@ import pytest
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.dep_verify_admin import VerifiedAdmin, depends_verify_admin
+from auth.dep_verify_admin import (
+    VerifiedAdmin,
+    VerifiedSuperAdmin,
+    depends_verify_admin,
+    depends_verify_super_admin,
+)
 from auth.dep_verify_user import VerifiedUser
-from database.admin_users import NoAdminError
+from database.admin_users import NoAdminError, UserAdminSettings
 
 pytestmark = pytest.mark.asyncio
+
+
+def admin_settings(user_id: uuid.UUID, is_super_admin: bool = False):
+    """Build a UserAdminSettings as returned by get_admin_user_by_user_id."""
+    return UserAdminSettings(user_id=user_id, is_super_admin=is_super_admin)
 
 
 class TestDependsVerifyAdmin:
@@ -39,7 +49,7 @@ class TestDependsVerifyAdmin:
     ):
         """Test that a VerifiedAdmin is returned when user is an admin."""
         user_id = verified_user.id
-        mock_get_admin_user_by_user_id.return_value = user_id
+        mock_get_admin_user_by_user_id.return_value = admin_settings(user_id)
 
         result = await depends_verify_admin(user=verified_user, session=mock_session)
 
@@ -59,7 +69,7 @@ class TestDependsVerifyAdmin:
         with pytest.raises(HTTPException) as exc_info:
             await depends_verify_admin(user=verified_user, session=mock_session)
 
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
         assert str(exc_info.value.detail) == error_message
         mock_get_admin_user_by_user_id.assert_awaited_once_with(
             user_id=verified_user.id, session=mock_session
@@ -70,7 +80,7 @@ class TestDependsVerifyAdmin:
     ):
         """Test that the correct user_id is passed to get_admin_user_by_user_id."""
         expected_user_id = verified_user.id
-        mock_get_admin_user_by_user_id.return_value = expected_user_id
+        mock_get_admin_user_by_user_id.return_value = admin_settings(expected_user_id)
 
         await depends_verify_admin(user=verified_user, session=mock_session)
 
@@ -82,17 +92,111 @@ class TestDependsVerifyAdmin:
     async def test_returns_verified_admin_with_correct_id(
         self, verified_user, mock_session, mock_get_admin_user_by_user_id
     ):
-        """Test that VerifiedAdmin contains the correct user_id."""
+        """Test that VerifiedAdmin contains the user_id from the admin settings."""
         returned_user_id = uuid.uuid4()
-        mock_get_admin_user_by_user_id.return_value = returned_user_id
+        mock_get_admin_user_by_user_id.return_value = admin_settings(returned_user_id)
 
         result = await depends_verify_admin(user=verified_user, session=mock_session)
 
         assert result.id == returned_user_id
 
+    async def test_accepts_non_super_admin(
+        self, verified_user, mock_session, mock_get_admin_user_by_user_id
+    ):
+        """Test that a basic admin (is_super_admin=False) passes verification."""
+        mock_get_admin_user_by_user_id.return_value = admin_settings(
+            verified_user.id, is_super_admin=False
+        )
+
+        result = await depends_verify_admin(user=verified_user, session=mock_session)
+
+        assert isinstance(result, VerifiedAdmin)
+        assert result.id == verified_user.id
+
     async def test_verified_admin_is_frozen_dataclass(self):
         """Test that VerifiedAdmin is a frozen dataclass."""
         admin = VerifiedAdmin(id=uuid.uuid4())
+
+        with pytest.raises(AttributeError):
+            admin.id = uuid.uuid4()  # type: ignore
+
+
+class TestDependsVerifySuperAdmin:
+    """Tests for the depends_verify_super_admin dependency function."""
+
+    @pytest.fixture
+    def verified_user(self):
+        """Create a sample VerifiedUser."""
+        return VerifiedUser(id=uuid.uuid4())
+
+    @pytest.fixture
+    def mock_session(self):
+        """Create a mock AsyncSession."""
+        return MagicMock(spec=AsyncSession)
+
+    @pytest.fixture
+    def mock_get_admin_user_by_user_id(self):
+        """Mock the get_admin_user_by_user_id function."""
+        with patch(
+            "auth.dep_verify_admin.get_admin_user_by_user_id",
+            new=AsyncMock(),
+        ) as mock:
+            yield mock
+
+    async def test_returns_verified_super_admin_on_success(
+        self, verified_user, mock_session, mock_get_admin_user_by_user_id
+    ):
+        """Test that a VerifiedSuperAdmin is returned for a super admin."""
+        user_id = verified_user.id
+        mock_get_admin_user_by_user_id.return_value = admin_settings(
+            user_id, is_super_admin=True
+        )
+
+        result = await depends_verify_super_admin(
+            user=verified_user, session=mock_session
+        )
+
+        assert isinstance(result, VerifiedSuperAdmin)
+        assert result.id == user_id
+        mock_get_admin_user_by_user_id.assert_awaited_once_with(
+            user_id=user_id, session=mock_session
+        )
+
+    async def test_raises_http_exception_when_user_is_not_super_admin(
+        self, verified_user, mock_session, mock_get_admin_user_by_user_id
+    ):
+        """Test that HTTPException is raised for a basic (non-super) admin."""
+        mock_get_admin_user_by_user_id.return_value = admin_settings(
+            verified_user.id, is_super_admin=False
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            await depends_verify_super_admin(user=verified_user, session=mock_session)
+
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+        assert f"User {verified_user.id} is not a Super Admin." in str(
+            exc_info.value.detail
+        )
+
+    async def test_raises_http_exception_when_user_is_not_admin(
+        self, verified_user, mock_session, mock_get_admin_user_by_user_id
+    ):
+        """Test that HTTPException is raised when user is not an admin at all."""
+        error_message = f"User {verified_user.id} is not an Admin."
+        mock_get_admin_user_by_user_id.side_effect = NoAdminError(error_message)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await depends_verify_super_admin(user=verified_user, session=mock_session)
+
+        assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+        assert str(exc_info.value.detail) == error_message
+        mock_get_admin_user_by_user_id.assert_awaited_once_with(
+            user_id=verified_user.id, session=mock_session
+        )
+
+    async def test_verified_super_admin_is_frozen_dataclass(self):
+        """Test that VerifiedSuperAdmin is a frozen dataclass."""
+        admin = VerifiedSuperAdmin(id=uuid.uuid4())
 
         with pytest.raises(AttributeError):
             admin.id = uuid.uuid4()  # type: ignore

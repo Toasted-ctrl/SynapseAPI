@@ -3,7 +3,15 @@ import uuid
 import pytest
 from db_helpers import make_session, params, row
 
-from database.mcps import MCP, MCPConfig, get_mcp_by_id, get_mcps, insert_mcp
+from database.mcps import (
+    MCP,
+    MCPConfig,
+    MCPNotFoundError,
+    delete_mcp_by_id,
+    get_mcp_by_id,
+    get_mcps,
+    insert_mcp,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -98,3 +106,29 @@ class TestInsertMcp:
 
         assert result == provided_id
         assert session.added[0].id == provided_id
+
+
+class TestDeleteMcp:
+    async def test_deletes_mcp(self):
+        mcp_id = uuid.uuid4()
+        mcp_row = row(id=mcp_id, name="test", url="http://test", transport="http")
+        session = make_session(execute=[mcp_row])
+
+        await delete_mcp_by_id(session=session, mcp_id=mcp_id)
+
+        session.delete.assert_awaited_once_with(mcp_row)
+
+    async def test_raises_when_not_found(self):
+        session = make_session(execute=[None])
+
+        with pytest.raises(MCPNotFoundError, match="does not exist"):
+            await delete_mcp_by_id(session=session, mcp_id=uuid.uuid4())
+
+    async def test_uses_correct_id_in_query(self):
+        mcp_id = uuid.uuid4()
+        mcp_row = row(id=mcp_id, name="test", url="http://test", transport="http")
+        session = make_session(execute=[mcp_row])
+
+        await delete_mcp_by_id(session=session, mcp_id=mcp_id)
+
+        assert params(session.execute.await_args) == [mcp_id]

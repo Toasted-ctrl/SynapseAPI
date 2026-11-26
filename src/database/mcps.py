@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass
 from uuid import UUID
+from warnings import deprecated
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,17 +33,24 @@ class MCPConfig:
     id: UUID | None = None
 
 
+class MCPNotFoundError(ValueError):
+    """Raised when an MCP could not be found in the database."""
+
+    pass
+
+
 async def get_mcp_by_id(session: AsyncSession, mcp_id: UUID) -> MCPConfig:
     """Returns MCP configuration based on MCP id."""
     mcp = (
         await session.execute(select(MCPsT).where(MCPsT.id == mcp_id))
     ).scalar_one_or_none()
-    if mcp is None:
-        raise ValueError(f"MCP with ID {mcp_id} does not exist.")
-    log.debug(f"Fetched configuration details for MCP '{mcp_id}'.")
+    if not mcp:
+        raise MCPNotFoundError(f"MCP with ID {mcp_id} does not exist.")
+    log.debug(f"Fetched configuration details for MCP '{mcp_id}'")
     return MCPConfig(id=mcp.id, name=mcp.name, url=mcp.url, transport=mcp.transport)
 
 
+@deprecated("Deprecated: Was replaced with src/database/mcps.py/insert_new_mcp")
 async def insert_mcp(session: AsyncSession, mcp_config: MCPConfig) -> UUID:
     mcp = MCPsT(**asdict(mcp_config))
     session.add(mcp)
@@ -50,3 +58,22 @@ async def insert_mcp(session: AsyncSession, mcp_config: MCPConfig) -> UUID:
     await session.refresh(mcp)
     log.debug(f"Inserted MCP {mcp.id}")
     return mcp.id
+
+
+async def insert_new_mcp(session: AsyncSession, mcp_config: MCPConfig) -> MCPConfig:
+    mcp = MCPsT(**asdict(mcp_config))
+    session.add(mcp)
+    await session.flush()
+    log.debug(f"Inserted MCP {mcp.id}")
+    return MCPConfig(id=mcp.id, name=mcp.name, url=mcp.url, transport=mcp.transport)
+
+
+async def delete_mcp_by_id(session: AsyncSession, mcp_id: UUID) -> None:
+    mcp = (
+        await session.execute(select(MCPsT).where(MCPsT.id == mcp_id))
+    ).scalar_one_or_none()
+    if not mcp:
+        log.debug(f"MCP with ID {mcp_id} does not exist")
+        raise MCPNotFoundError(f"MCP with ID {mcp_id} does not exist.")
+    await session.delete(mcp)
+    log.debug(f"Deleted MCP {mcp_id}")
