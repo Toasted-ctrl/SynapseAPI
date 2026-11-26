@@ -22,3 +22,5 @@ class AuthenticatedUserRead(BaseModel):
     first_name: str
     last_name: str
     email: str
+    is_admin: bool
+    is_super_admin: bool
