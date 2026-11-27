@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from enum import StrEnum
 
 from fastapi import HTTPException, status
 
 from api.v1.inference.models import TranslationModel, VectorEmbeddingModel
 from api.v1.playground.models import AgentModel, AgentTools, DecisionAgentModel
-from core.model_types import model_config
+from core.model_types import ModelType, model_config
 from database.providers import ProviderConfiguration, UserProviderRegistry
 
 
@@ -30,13 +29,6 @@ class TranslationSettings:
 @dataclass(frozen=True)
 class VectorEmbeddingSettings:
     model: VectorEmbeddingModel
-
-
-class ModelType(StrEnum):
-    CHAT_COMPLETION = "chat_completion"
-    VECTOR_EMBEDDING = "vector_embedding"
-    TRANSLATION = "translation"
-    SYSTEM_ONE = "system_one"
 
 
 async def _validate_supported_model(model_name: str, model_type: ModelType) -> None:

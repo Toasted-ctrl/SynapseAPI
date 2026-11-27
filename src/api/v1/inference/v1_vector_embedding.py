@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.logging import get_logger
+from core.model_types import ModelType
 from database.providers import (
     ProviderConfiguration,
     UserProviderRegistry,
@@ -11,7 +12,7 @@ from database.providers import (
 from database.session import get_db_session
 from providers.vector_embedding import get_embedding
 
-from .helpers import ModelType, VectorEmbeddingSettings, get_provider_configuration
+from .helpers import VectorEmbeddingSettings, get_provider_configuration
 from .models import VectorEmbeddingCreate, VectorEmbeddingRead
 
 router = APIRouter(tags=["Inference / Vector Embedding"])

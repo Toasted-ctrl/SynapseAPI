@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from cachetools import TTLCache
 
-from core.model_types import ModelConfig
+from core.model_types import ModelConfig, ModelType
 
 pytestmark = pytest.mark.asyncio
 
@@ -138,3 +138,19 @@ class TestModelConfig:
         await ModelConfig().chat_completion_models()
 
         assert get_models.await_count == 2
+
+    async def test_invalidate_refetches_only_that_expertise(self, db):
+        _, get_models = db
+        get_models.side_effect = [["llama3"], ["translategemma"], ["llama3", "qwen3"]]
+        mc = ModelConfig()
+
+        await mc.chat_completion_models()
+        await mc.translation_models()
+        mc.invalidate(ModelType.CHAT_COMPLETION)
+
+        assert await mc.chat_completion_models() == ["llama3", "qwen3"]
+        assert await mc.translation_models() == ["translategemma"]
+        assert get_models.await_count == 3
+
+    async def test_invalidate_uncached_expertise_is_a_no_op(self):
+        ModelConfig().invalidate(ModelType.SYSTEM_ONE)

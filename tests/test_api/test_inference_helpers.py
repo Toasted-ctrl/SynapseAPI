@@ -6,12 +6,12 @@ from fastapi import HTTPException, status
 
 from api.v1.inference.helpers import (
     ConversationSettings,
-    ModelType,
     VectorEmbeddingSettings,
     get_provider_configuration,
 )
 from api.v1.inference.models import VectorEmbeddingModel
 from api.v1.playground.models import AgentModel, AgentTools
+from core.model_types import ModelType
 from database.providers import ProviderConfiguration, UserProviderRegistry
 from providers.dataclasses import LangChainCon
 

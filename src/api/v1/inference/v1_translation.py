@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.cache import cache_key_builder
+from core.model_types import ModelType
 from database.providers import (
     ProviderConfiguration,
     UserProviderRegistry,
@@ -17,7 +18,7 @@ from providers.ollama.translategemma import (
     translategemma_languages,
 )
 
-from .helpers import ModelType, TranslationSettings, get_provider_configuration
+from .helpers import TranslationSettings, get_provider_configuration
 from .models import TranslationCreate, TranslationLanguagesRead, TranslationRead
 
 router = APIRouter(tags=["Inference / Translation"])

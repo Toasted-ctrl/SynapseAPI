@@ -14,6 +14,7 @@ from api.v1.playground.models import AgentTools
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.config import config
 from core.logging import get_logger
+from core.model_types import ModelType
 from database.agent import AgentNotFoundError, get_agent_configuration
 from database.message_threads import verify_or_get_thread_id
 from database.providers import (
@@ -36,7 +37,7 @@ from security.encryption import EncryptedSerializer
 from tools.get_tools import get_agent_tools
 from tools.mcp_tools import MCPUnavailableError
 
-from .helpers import ConversationSettings, ModelType, get_provider_configuration
+from .helpers import ConversationSettings, get_provider_configuration
 from .models import ConversationCreate, ConversationRead, ToolCallRead
 
 router = APIRouter()

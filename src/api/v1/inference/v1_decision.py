@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.v1.playground.models import DecisionState, DecisionStateType
 from auth.dep_verify_user import VerifiedUser, depends_verify_user
 from core.logging import get_logger
+from core.model_types import ModelType
 from database.agent import AgentNotFoundError, get_decision_agent_configuration
 from database.providers import (
     ProviderConfiguration,
@@ -14,7 +15,7 @@ from database.providers import (
 from database.session import get_db_session
 from providers.melious.system_one import get_decision
 
-from .helpers import DecisionSettings, ModelType, get_provider_configuration
+from .helpers import DecisionSettings, get_provider_configuration
 from .models import DecisionCreate, DecisionRead
 
 router = APIRouter()

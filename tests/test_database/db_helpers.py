@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -30,10 +31,12 @@ def make_session(execute=(), scalar=(), scalars=()):
         return result
 
     async def _flush():
-        # Mimic the database assigning primary keys on flush.
+        # Mimic the database assigning primary keys and server defaults on flush.
         for obj in session.added:
             if getattr(obj, "id", None) is None:
                 obj.id = uuid.uuid4()
+            if getattr(obj, "created_date", None) is None:
+                obj.created_date = datetime.now()
 
     session.execute = AsyncMock(side_effect=[_execute_result(r) for r in execute])
     session.scalar = AsyncMock(side_effect=list(scalar))

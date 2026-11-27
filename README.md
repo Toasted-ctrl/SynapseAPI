@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-11-23.
+> This document was last reviewed on 2026-11-27.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -48,6 +48,10 @@ SynapseAPI is a lightweight gateway that sits between your apps and the LLM prov
 **Tools**
 - MCP server support.
 - Web search through Firecrawl.
+
+**Administration**
+- Admins can register and remove models for each expertise (chat completion, translation, vector embedding, System One) through the API.
+- Admins can register and remove MCP servers.
 
 ## Supported LLM Providers
 Every provider listed here has been tested and verified with a personally obtained API key.
@@ -129,8 +133,10 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Skills       | `POST, GET, PUT /documents/skill`                                         | Manage skills                                   |
 | Vectors      | `POST /documents/vector-store/add`, `POST /documents/vector-store/search` | Store and search documents                      |
 | Providers    | `GET /providers/models`, `GET /providers/models/sampling`, `GET /providers/configuration` | Available models and provider setup |
-| Tools        | `GET, POST, DELETE /tools/mcp`                                            | Available MCP servers                           |
+| Tools        | `GET /tools/mcp`                                                          | Available MCP servers                           |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |
+| Admin        | `GET, POST, DELETE /admin/models`                                         | List models by expertise, and register or remove models (Admin only) |
+| Admin        | `POST, DELETE /admin/tools/mcp`                                           | Register or remove MCP servers (Admin only)     |
 
 ## Roadmap
 
