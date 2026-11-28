@@ -187,66 +187,6 @@ async def get_all_provider_configurations(
     return UserProviderRegistry(providers=conf)
 
 
-async def get_providers_by_location(
-    session: AsyncSession, is_internal: bool
-) -> list[Provider]:
-    """Returns a list of providers based on location (internal or external)."""
-
-    providers = (
-        await session.execute(
-            select(
-                ProvidersT.id,
-                ProvidersT.base_url,
-                ProvidersT.name,
-                ProvidersT.internal,
-                ProvidersT.requires_api_key,
-                ProvidersT.langchain_con,
-            ).where(ProvidersT.internal == is_internal)
-        )
-    ).all()
-
-    if not providers:
-        return []
-
-    return [
-        Provider(
-            id=p.id,
-            base_url=p.base_url,
-            name=p.name,
-            langchain_con=LangChainCon(p.langchain_con),
-            internal=p.internal,
-            requires_api_key=p.requires_api_key,
-        )
-        for p in providers
-    ]
-
-
-# TODO: Build test
-async def get_providers_by_id(
-    session: AsyncSession, ids: list[uuid.UUID]
-) -> list[Provider]:
-    """Returns a list of Provider objects based on the provided Provider IDs."""
-
-    providers = (
-        await session.scalars(select(ProvidersT).where(ProvidersT.id.in_(ids)))
-    ).all()
-
-    if not providers:
-        return []
-
-    return [
-        Provider(
-            id=p.id,
-            base_url=p.base_url,
-            name=p.name,
-            langchain_con=LangChainCon(p.langchain_con),
-            internal=p.internal,
-            requires_api_key=p.requires_api_key,
-        )
-        for p in providers
-    ]
-
-
 async def get_provider_config(
     session: AsyncSession, provider_name: str, user_id: uuid.UUID
 ) -> ProviderConfiguration:

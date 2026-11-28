@@ -18,8 +18,6 @@ from database.providers import (
     get_all_provider_records,
     get_or_create_provider,
     get_provider_config,
-    get_providers_by_id,
-    get_providers_by_location,
     insert_provider_record,
 )
 from database.schemas.providers import ProvidersT
@@ -188,40 +186,6 @@ class TestGetAllProviderConfigurations:
 
         assert reg.Ollama.api_key_configured is False
         assert reg.not_configured == []
-
-
-@pytest.mark.asyncio
-class TestGetProvidersByLocation:
-    async def test_returns_providers(self):
-        p = _provider_row()
-        session = make_session(execute=[[p]])
-
-        result = await get_providers_by_location(session=session, is_internal=True)
-
-        assert [r.id for r in result] == [p.id]
-        assert "providers.internal = true" in str(session.execute.await_args.args[0])
-
-    async def test_returns_empty_list(self):
-        session = make_session(execute=[[]])
-
-        assert await get_providers_by_location(session=session, is_internal=False) == []
-
-
-@pytest.mark.asyncio
-class TestGetProvidersById:
-    async def test_returns_matching_providers(self):
-        a, b = _provider_row("A"), _provider_row("B")
-        session = make_session(scalars=[[a, b]])
-
-        result = await get_providers_by_id(session=session, ids=[a.id, b.id])
-
-        assert [r.name for r in result] == ["A", "B"]
-        assert params(session.scalars.await_args) == [[a.id, b.id]]
-
-    async def test_returns_empty_list(self):
-        session = make_session(scalars=[[]])
-
-        assert await get_providers_by_id(session=session, ids=[uuid.uuid4()]) == []
 
 
 @pytest.mark.asyncio
