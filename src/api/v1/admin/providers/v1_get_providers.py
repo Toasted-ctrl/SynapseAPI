@@ -43,6 +43,4 @@ async def admin_get_providers(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No providers found in the database.",
         )
-    return ProviderListRead(
-        providers=[ProviderRead(**asdict(p)) for p in providers]
-    )
+    return ProviderListRead(providers=[ProviderRead(**asdict(p)) for p in providers])
