@@ -17,7 +17,7 @@
 > One self-hostable API for many LLM providers, with agents, memory, RAG and tools built in.
 
 > [!NOTE]
-> This document was last reviewed on 2026-11-27.
+> This document was last reviewed on 2026-11-28.
 
 SynapseAPI is a lightweight gateway that sits between your apps and the LLM providers you use. Your apps talk to a single, unified API, and SynapseAPI handles the rest: authentication, provider keys, agents, tool use, and retrieval over your own documents. It is designed to run comfortably on low-end, self-hosted hardware.
 
@@ -52,6 +52,7 @@ SynapseAPI is a lightweight gateway that sits between your apps and the LLM prov
 **Administration**
 - Admins can register and remove models for each expertise (chat completion, translation, vector embedding, System One) through the API.
 - Admins can register and remove MCP servers.
+- Admins can list, register and remove providers, including internal ones such as self-hosted Ollama instances.
 
 ## Supported LLM Providers
 Every provider listed here has been tested and verified with a personally obtained API key.
@@ -136,6 +137,7 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation is ava
 | Tools        | `GET /tools/mcp`                                                          | Available MCP servers                           |
 | Health       | `GET /root`, `GET /status`                                                | Service info and health check                   |
 | Admin        | `GET, POST, DELETE /admin/models`                                         | List models by expertise, and register or remove models (Admin only) |
+| Admin        | `GET, POST, DELETE /admin/providers`                                      | List, register, or remove providers (Admin only) |
 | Admin        | `POST, DELETE /admin/tools/mcp`                                           | Register or remove MCP servers (Admin only)     |
 
 ## Roadmap
