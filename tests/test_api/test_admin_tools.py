@@ -32,7 +32,7 @@ def _client(admin_ok: bool = True) -> TestClient:
 
 @pytest.fixture
 def insert_mcp():
-    with patch.object(mcps_module, "insert_new_mcp", new=AsyncMock()) as m:
+    with patch.object(mcps_module, "insert_mcp", new=AsyncMock()) as m:
         yield m
 
 

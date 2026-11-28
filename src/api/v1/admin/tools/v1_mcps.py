@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dep_verify_admin import depends_verify_admin
-from database.mcps import MCPConfig, MCPNotFoundError, delete_mcp_by_id, insert_new_mcp
+from database.mcps import MCPConfig, MCPNotFoundError, delete_mcp_by_id, insert_mcp
 from database.session import get_db_session
 
 from .models import MCPConfigurationCreate, MCPConfigurationRead
@@ -24,7 +24,7 @@ async def add_tools_mcp(
     payload: MCPConfigurationCreate,
     session: AsyncSession = Depends(get_db_session),
 ) -> MCPConfigurationRead:
-    mcp = await insert_new_mcp(
+    mcp = await insert_mcp(
         session=session, mcp_config=MCPConfig(**payload.model_dump())
     )
     return MCPConfigurationRead(**asdict(mcp))

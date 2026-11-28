@@ -63,7 +63,7 @@ class TestGetMcpById:
 
 
 class TestInsertMcp:
-    async def test_returns_id(self):
+    async def test_returns_config_with_generated_id(self):
         session = make_session()
         config = MCPConfig(
             name="test_mcp",
@@ -73,7 +73,13 @@ class TestInsertMcp:
 
         result = await insert_mcp(session=session, mcp_config=config)
 
-        assert isinstance(result, uuid.UUID)
+        assert isinstance(result.id, uuid.UUID)
+        assert result == MCPConfig(
+            id=result.id,
+            name="test_mcp",
+            url="http://localhost:8000",
+            transport="streamable_http",
+        )
 
     async def test_adds_mcp_with_correct_fields(self):
         session = make_session()
@@ -104,7 +110,7 @@ class TestInsertMcp:
 
         result = await insert_mcp(session=session, mcp_config=config)
 
-        assert result == provided_id
+        assert result.id == provided_id
         assert session.added[0].id == provided_id
 
 
