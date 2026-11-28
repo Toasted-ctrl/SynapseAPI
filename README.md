@@ -60,6 +60,7 @@ Every provider listed here has been tested and verified with a personally obtain
 - Anthropic
 - Fireworks AI
 - Google (AI Studio)
+- Grok / xAI
 - Lyceum Technology
 - Melious
 - Mistral
